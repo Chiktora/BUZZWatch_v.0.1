@@ -1,19 +1,24 @@
-using BuzzWatch.Infrastructure;
+using BuzzWatch.Api;
 using BuzzWatch.Infrastructure.Data;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
 
 namespace BuzzWatch.Tests.Integration.Api
 {
-    public class ApiFactory : WebApplicationFactory<BuzzWatch.Api.Program>
+    public class ApiFactory : WebApplicationFactory<Program>
     {
+        private readonly SqliteConnection _connection;
+
+        public ApiFactory()
+        {
+            _connection = new SqliteConnection("DataSource=:memory:");
+            _connection.Open();
+        }
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureServices(services =>
@@ -27,43 +32,31 @@ namespace BuzzWatch.Tests.Integration.Api
                     services.Remove(descriptor);
                 }
 
-                // Register test services
-                services.AddInfrastructure(
-                    services.BuildServiceProvider().GetRequiredService<Microsoft.Extensions.Configuration.IConfiguration>(), 
-                    useSqliteForTests: true);
+                // Add ApplicationDbContext using an in-memory database for testing
+                services.AddDbContext<ApplicationDbContext>(options =>
+                {
+                    options.UseSqlite(_connection);
+                });
 
                 // Build the service provider
                 var sp = services.BuildServiceProvider();
 
-                // Create a scope to get the DbContext
+                // Create a scope to obtain a reference to the database
                 using (var scope = sp.CreateScope())
                 {
                     var scopedServices = scope.ServiceProvider;
                     var db = scopedServices.GetRequiredService<ApplicationDbContext>();
-                    var logger = scopedServices.GetRequiredService<ILogger<ApiFactory>>();
 
-                    try
-                    {
-                        // Ensure the database is created and migrated
-                        db.Database.EnsureCreated();
-
-                        // Seed test data
-                        SeedTestData(db);
-                    }
-                    catch (Exception ex)
-                    {
-                        logger.LogError(ex, "An error occurred setting up the test database.");
-                    }
+                    // Ensure the database is created
+                    db.Database.EnsureCreated();
                 }
             });
         }
 
-        private void SeedTestData(ApplicationDbContext db)
+        protected override void Dispose(bool disposing)
         {
-            // Create a test device
-            var device = BuzzWatch.Domain.Devices.Device.Create("Test Device");
-            db.Devices.Add(device);
-            db.SaveChanges();
+            base.Dispose(disposing);
+            _connection.Dispose();
         }
     }
 } 
