@@ -1,0 +1,6 @@
+@BuzzWatch.Api_HostAddress = http://localhost:5189
+
+GET {{BuzzWatch.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
