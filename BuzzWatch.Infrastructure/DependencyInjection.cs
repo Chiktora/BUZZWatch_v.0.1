@@ -1,4 +1,7 @@
 using BuzzWatch.Application.Abstractions;
+using BuzzWatch.Application.Alerts.Interfaces;
+using BuzzWatch.Application.Common.Interfaces;
+using BuzzWatch.Application.Measurements.Interfaces;
 using BuzzWatch.Infrastructure.Data;
 using BuzzWatch.Infrastructure.Identity;
 using BuzzWatch.Infrastructure.Repositories;
@@ -36,6 +39,10 @@ namespace BuzzWatch.Infrastructure
 
             // Register services
             services.AddSingleton<IDateTimeProvider, DateTimeProvider>();
+            services.AddScoped<IAlertEvaluator, AlertEvaluator>();
+            services.AddScoped<IMeasurementAggregator, MeasurementAggregator>();
+            services.AddScoped<IEmailSender, EmailSender>();
+            services.AddScoped<IMessagePublisher, EmailMessagePublisher>();
 
             // Register Identity
             services.AddIdentityCore<AppUser>(options =>

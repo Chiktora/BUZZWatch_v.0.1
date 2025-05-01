@@ -6,30 +6,33 @@ namespace BuzzWatch.Domain.Alerts
     {
         private AlertEvent() { } // EF Core constructor
         
-        public Guid AlertRuleId { get; private set; }
+        public Guid RuleId { get; private set; }
         public Guid DeviceId { get; private set; }
-        public DateTimeOffset OpenedAt { get; private set; }
-        public DateTimeOffset? ClosedAt { get; private set; }
-        public decimal TriggerValue { get; private set; }
-        public bool IsOpen => ClosedAt == null;
-        
-        public static AlertEvent Open(Guid alertRuleId, Guid deviceId, decimal triggerValue)
+        public string Message { get; private set; } = string.Empty;
+        public DateTimeOffset StartTime { get; private set; }
+        public DateTimeOffset? EndTime { get; private set; }
+
+        public static AlertEvent Create(
+            Guid ruleId,
+            Guid deviceId,
+            string message)
         {
             return new AlertEvent
             {
                 Id = Guid.NewGuid(),
-                AlertRuleId = alertRuleId,
+                RuleId = ruleId,
                 DeviceId = deviceId,
-                OpenedAt = DateTimeOffset.UtcNow,
-                TriggerValue = triggerValue
+                Message = message,
+                StartTime = DateTimeOffset.UtcNow,
+                EndTime = null
             };
         }
-        
+
         public void Close()
         {
-            if (IsOpen)
+            if (EndTime == null)
             {
-                ClosedAt = DateTimeOffset.UtcNow;
+                EndTime = DateTimeOffset.UtcNow;
             }
         }
     }

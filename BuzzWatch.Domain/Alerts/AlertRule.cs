@@ -35,7 +35,8 @@ namespace BuzzWatch.Domain.Alerts
                 Operator = op,
                 Threshold = threshold,
                 DurationSeconds = durationS,
-                CreatedAt = DateTimeOffset.UtcNow
+                CreatedAt = DateTimeOffset.UtcNow,
+                Active = true
             };
         }
 
