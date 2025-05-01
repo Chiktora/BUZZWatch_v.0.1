@@ -12,6 +12,8 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.0" />
     <PackageReference Include="FluentAssertions" Version="6.12.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.3" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.6.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.5.3" />
@@ -21,6 +23,8 @@
     <ProjectReference Include="..\BuzzWatch.Application\BuzzWatch.Application.csproj" />
     <ProjectReference Include="..\BuzzWatch.Domain\BuzzWatch.Domain.csproj" />
     <ProjectReference Include="..\BuzzWatch.Infrastructure\BuzzWatch.Infrastructure.csproj" />
+    <ProjectReference Include="..\BuzzWatch.Api\BuzzWatch.Api.csproj" />
+    <ProjectReference Include="..\BuzzWatch.Contracts\BuzzWatch.Contracts.csproj" />
   </ItemGroup>
 
 </Project>
