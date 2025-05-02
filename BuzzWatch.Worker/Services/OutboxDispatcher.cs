@@ -11,17 +11,14 @@ public class OutboxDispatcher : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<OutboxDispatcher> _logger;
-    private readonly IMessagePublisher _messagePublisher;
     private readonly TimeSpan _pollingInterval = TimeSpan.FromSeconds(5);
 
     public OutboxDispatcher(
         IServiceProvider serviceProvider,
-        ILogger<OutboxDispatcher> logger,
-        IMessagePublisher messagePublisher)
+        ILogger<OutboxDispatcher> logger)
     {
         _serviceProvider = serviceProvider;
         _logger = logger;
-        _messagePublisher = messagePublisher;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -47,6 +44,7 @@ public class OutboxDispatcher : BackgroundService
     {
         using var scope = _serviceProvider.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var messagePublisher = scope.ServiceProvider.GetRequiredService<IMessagePublisher>();
         
         var messages = await dbContext.OutboxMessages
             .Where(m => m.ProcessedAt == null)
@@ -65,7 +63,7 @@ public class OutboxDispatcher : BackgroundService
         {
             try
             {
-                await _messagePublisher.PublishAsync(message.Type, message.Content, cancellationToken);
+                await messagePublisher.PublishAsync(message.Type, message.Content, cancellationToken);
                 
                 message.ProcessedAt = DateTimeOffset.UtcNow;
                 message.Status = "Processed";

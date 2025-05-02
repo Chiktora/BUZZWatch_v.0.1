@@ -1,6 +1,4 @@
-using BuzzWatch.Web.Data;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore;
+using BuzzWatch.Web.Services;
 
 namespace BuzzWatch.Web
 {
@@ -11,13 +9,42 @@ namespace BuzzWatch.Web
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-            var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-            builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
-            builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+            
+            // Add session services
+            builder.Services.AddDistributedMemoryCache();
+            builder.Services.AddSession(options =>
+            {
+                options.IdleTimeout = TimeSpan.FromMinutes(30);
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+            });
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-                .AddEntityFrameworkStores<ApplicationDbContext>();
+            // Add authentication configuration
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = "Cookies";
+                options.DefaultChallengeScheme = "Cookies";
+            })
+            .AddCookie("Cookies", options =>
+            {
+                options.LoginPath = "/Account/Login";
+                options.LogoutPath = "/Account/Logout";
+                options.AccessDeniedPath = "/Account/AccessDenied";
+            });
+
+            // Add HttpContextAccessor for JWT handling
+            builder.Services.AddHttpContextAccessor();
+            
+            // Add ApiClient with JWT handler
+            builder.Services.AddTransient<JwtDelegatingHandler>();
+            builder.Services.AddHttpClient<ApiClient>(client =>
+            {
+                // Read from appsettings.json
+                var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7116";
+                client.BaseAddress = new Uri(apiBaseUrl);
+            })
+            .AddHttpMessageHandler<JwtDelegatingHandler>();
+            
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();
@@ -25,7 +52,7 @@ namespace BuzzWatch.Web
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.UseMigrationsEndPoint();
+                app.UseDeveloperExceptionPage();
             }
             else
             {
@@ -39,13 +66,16 @@ namespace BuzzWatch.Web
 
             app.UseRouting();
 
+            // Use session before authentication
+            app.UseSession();
+
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
-            app.MapRazorPages();
-
+            
             app.Run();
         }
     }

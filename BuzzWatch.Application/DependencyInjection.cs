@@ -1,6 +1,5 @@
-using BuzzWatch.Application.Pipeline;
+using BuzzWatch.Application.Mappings;
 using FluentValidation;
-using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
@@ -11,18 +10,13 @@ namespace BuzzWatch.Application
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             var assembly = Assembly.GetExecutingAssembly();
-
+            
             // Register MediatR
             services.AddMediatR(cfg => 
-            {
-                cfg.RegisterServicesFromAssembly(assembly);
+                cfg.RegisterServicesFromAssembly(assembly));
 
-                // Register pipeline behaviors
-                cfg.AddBehavior(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-            });
-
-            // Register validators
-            services.AddValidatorsFromAssembly(assembly);
+            // Register AutoMapper
+            services.AddAutoMapper(typeof(MeasurementMappings).Assembly);
 
             return services;
         }

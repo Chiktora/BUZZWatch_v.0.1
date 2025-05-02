@@ -1,4 +1,14 @@
 namespace BuzzWatch.Contracts.Auth
 {
-    public record LoginResponse(string Token);
+    public class LoginResponse
+    {
+        public string Token { get; set; } = string.Empty;
+
+        public LoginResponse() { }
+
+        public LoginResponse(string token)
+        {
+            Token = token;
+        }
+    }
 } 

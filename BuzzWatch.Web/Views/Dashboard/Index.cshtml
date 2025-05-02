@@ -1,0 +1,35 @@
+@model BuzzWatch.Web.Models.DashboardViewModel
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="container">
+    <h1 class="my-4">BuzzWatch Dashboard</h1>
+    
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        @foreach (var d in Model.Devices)
+        {
+            <div class="card shadow p-4" id="device-@d.Id">
+                <h2 class="font-bold">@d.Name</h2>
+                <p class="text-sm text-gray-500">@d.Location</p>
+                <div class="mt-2">
+                    <span id="latestTemp-@d.Id">--</span> °C
+                </div>
+                <canvas id="chart-@d.Id" height="120"></canvas>
+            </div>
+        }
+    </div>
+    
+    @if (!Model.Devices.Any())
+    {
+        <div class="alert alert-info mt-4">
+            No devices available. Please add some devices to start monitoring.
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="~/lib/chart.js/chart.umd.js"></script>
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+} 

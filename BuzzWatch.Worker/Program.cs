@@ -1,6 +1,7 @@
 using BuzzWatch.Application;
 using BuzzWatch.Infrastructure;
 using BuzzWatch.Worker.Extensions;
+using Microsoft.Extensions.Hosting;
 using Serilog;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -8,20 +9,17 @@ var builder = Host.CreateApplicationBuilder(args);
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console()
     .CreateLogger();
 
-builder.Services.UseSerilog();
+// Use Serilog for logging
+builder.Services.AddLogging(loggingBuilder =>
+    loggingBuilder.AddSerilog(dispose: true));
 
-// Add application services
+// Add services
 builder.Services
     .AddInfrastructure(builder.Configuration)
-    .AddApplication();
+    .AddApplication()
+    .AddWorkerServices(builder.Configuration);
 
-// Add Worker services (including Quartz)
-builder.Services.AddWorkerServices(builder.Configuration);
-
-// Build and run the host
 var host = builder.Build();
 await host.RunAsync();

@@ -1,10 +1,13 @@
 using BuzzWatch.Api.Authentication;
 using BuzzWatch.Api.Authorization;
+using BuzzWatch.Api.Hubs;
+using BuzzWatch.Api.Services;
 using BuzzWatch.Application;
 using BuzzWatch.Application.Measurements.Commands;
 using BuzzWatch.Contracts.Auth;
 using BuzzWatch.Contracts.Measurements;
 using BuzzWatch.Infrastructure;
+using BuzzWatch.Infrastructure.Abstractions;
 using BuzzWatch.Infrastructure.Extensions;
 using BuzzWatch.Infrastructure.Identity;
 using BuzzWatch.Infrastructure.Services;
@@ -20,6 +23,12 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddInfrastructure(builder.Configuration, useSqliteForTests: false)
     .AddApplication();
+
+// Add SignalR
+builder.Services.AddSignalR();
+
+// Register notification service
+builder.Services.AddScoped<IMeasurementNotificationService, SignalRMeasurementNotificationService>();
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
@@ -40,6 +49,18 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("OwnsDevice", policy => policy.Requirements.Add(new OwnsDeviceRequirement()));
 });
 
+// Add CORS for SignalR
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("frontend", policy =>
+    {
+        policy.WithOrigins("https://localhost:7093", "https://localhost:7195")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
+
 builder.Services.AddScoped<IAuthorizationHandler, OwnsDeviceHandler>();
 
 var app = builder.Build();
@@ -56,8 +77,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Use CORS
+app.UseCors("frontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Map SignalR hub
+app.MapHub<MeasurementHub>("/hubs/measurements");
 
 // API endpoints - v1 group
 var v1 = app.MapGroup("/api/v1");

@@ -1,6 +1,8 @@
+using MediatR;
+
 namespace BuzzWatch.Domain.Common
 {
-    public interface IDomainEvent
+    public interface IDomainEvent : INotification
     {
         DateTimeOffset OccurredOn { get; }
     }
