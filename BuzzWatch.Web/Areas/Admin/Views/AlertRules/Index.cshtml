@@ -1,0 +1,164 @@
+@model List<BuzzWatch.Web.Areas.Admin.Controllers.AlertRuleViewModel>
+
+@{
+    ViewData["Title"] = "Alert Rules";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Alert Rules</div>
+        <div>
+            <a asp-action="History" class="btn btn-sm btn-outline-secondary me-2">
+                <i class="bi bi-clock-history me-1"></i> View Alert History
+            </a>
+            <a asp-action="Create" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Add New Rule
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>Condition</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rule in Model)
+                        {
+                            <tr>
+                                <td>@rule.DeviceName</td>
+                                <td>
+                                    @(GetMetricName(rule.Metric)) @rule.Operator @rule.Threshold @(GetMetricUnit(rule.Metric))
+                                </td>
+                                <td>@GetDurationDisplay(rule.DurationSeconds)</td>
+                                <td>
+                                    @if (rule.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Disabled</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a asp-action="Edit" asp-route-id="@rule.Id" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal@(rule.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Delete Modal -->
+                                    <div class="modal fade" id="deleteModal@(rule.Id)" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Confirm Delete</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are you sure you want to delete this alert rule? This action cannot be undone.
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <form asp-action="Delete" asp-route-id="@rule.Id" method="post">
+                                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-5">
+                <i class="bi bi-bell-slash fs-1 text-secondary"></i>
+                <p class="mt-3">No alert rules have been created yet</p>
+                <a asp-action="Create" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle me-1"></i> Create Your First Alert Rule
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    </script>
+}
+
+@functions {
+    string GetMetricName(string metricCode)
+    {
+        return metricCode switch
+        {
+            "temp_in" => "Temperature (Inside)",
+            "temp_out" => "Temperature (Outside)",
+            "hum_in" => "Humidity (Inside)",
+            "hum_out" => "Humidity (Outside)",
+            "weight" => "Weight",
+            _ => metricCode
+        };
+    }
+
+    string GetMetricUnit(string metricCode)
+    {
+        return metricCode switch
+        {
+            "temp_in" => "°C",
+            "temp_out" => "°C",
+            "hum_in" => "%",
+            "hum_out" => "%",
+            "weight" => "kg",
+            _ => ""
+        };
+    }
+
+    string GetDurationDisplay(int seconds)
+    {
+        if (seconds < 60)
+            return $"{seconds} seconds";
+        else if (seconds < 3600)
+            return $"{seconds / 60} minutes";
+        else
+            return $"{seconds / 3600} hours";
+    }
+} 

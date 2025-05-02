@@ -22,5 +22,14 @@ namespace BuzzWatch.Contracts.Measurements
         
         [JsonPropertyName("weightKg")]
         public decimal? WeightKg { get; set; }
+        
+        [JsonPropertyName("batteryPct")]
+        public decimal? BatteryPct { get; set; }
+        
+        // Accessor properties to match what's used in the views and viewmodels
+        public decimal? Temperature => TempInsideC;
+        public decimal? Humidity => HumInsidePct;
+        public decimal? Weight => WeightKg;
+        public decimal? BatteryLevel => BatteryPct;
     }
 } 

@@ -1,0 +1,146 @@
+@model List<BuzzWatch.Web.Models.Admin.AuditLogEntry>
+
+@{
+    ViewData["Title"] = "Audit Log";
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>System Audit Log</div>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#searchFilters">
+                    <i class="bi bi-funnel me-1"></i> Filters
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="collapse @(ViewData["SearchTerm"] != null || ViewData["StartDate"] != null ? "show" : "")" id="searchFilters">
+        <div class="card-body border-bottom">
+            <div class="row">
+                <div class="col-md-6">
+                    <form asp-action="Search" method="get" class="mb-3">
+                        <div class="input-group">
+                            <input type="text" name="term" class="form-control" placeholder="Search logs..." value="@ViewData["SearchTerm"]" />
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form asp-action="ByDate" method="get" class="mb-3">
+                        <div class="input-group">
+                            <input type="date" name="startDate" class="form-control" value="@ViewData["StartDate"]" />
+                            <input type="date" name="endDate" class="form-control" value="@ViewData["EndDate"]" />
+                            <button class="btn btn-outline-secondary" type="submit">
+                                <i class="bi bi-calendar"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            
+            @if (ViewData["SearchTerm"] != null || ViewData["StartDate"] != null || ViewData["FilteredUser"] != null)
+            {
+                <div class="d-flex align-items-center mb-2">
+                    <div class="me-2">Active filters:</div>
+                    
+                    @if (ViewData["SearchTerm"] != null)
+                    {
+                        <a asp-action="Index" class="badge bg-secondary text-decoration-none me-2">
+                            Search: @ViewData["SearchTerm"] <i class="bi bi-x"></i>
+                        </a>
+                    }
+                    
+                    @if (ViewData["StartDate"] != null)
+                    {
+                        <a asp-action="Index" class="badge bg-secondary text-decoration-none me-2">
+                            Date range: @ViewData["StartDate"] - @ViewData["EndDate"] <i class="bi bi-x"></i>
+                        </a>
+                    }
+                    
+                    @if (ViewData["FilteredUser"] != null)
+                    {
+                        <a asp-action="Index" class="badge bg-secondary text-decoration-none me-2">
+                            User: @ViewData["FilteredUser"] <i class="bi bi-x"></i>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+    
+    <div class="card-body">
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Timestamp</th>
+                            <th>User</th>
+                            <th>Action</th>
+                            <th>Area</th>
+                            <th>Description</th>
+                            <th>IP Address</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var log in Model)
+                        {
+                            <tr>
+                                <td>@log.Timestamp.ToString("g")</td>
+                                <td>
+                                    <a asp-action="ByUser" asp-route-userId="@log.UserId">
+                                        @log.UserName
+                                    </a>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@GetActionBadgeColor(log.Action)">
+                                        @log.Action
+                                    </span>
+                                </td>
+                                <td>@log.Area/@log.Controller</td>
+                                <td>@log.Description</td>
+                                <td>@log.IpAddress</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@log.Id" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-info-circle"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-4">
+                <i class="bi bi-journal-check fs-1 text-secondary"></i>
+                <p class="mt-2">No audit log entries found</p>
+            </div>
+        }
+    </div>
+</div>
+
+@functions {
+    string GetActionBadgeColor(string action)
+    {
+        return action.ToLower() switch
+        {
+            "create" => "success",
+            "add" => "success",
+            "update" => "primary",
+            "modify" => "primary",
+            "delete" => "danger",
+            "remove" => "danger",
+            "login" => "info",
+            "logout" => "info",
+            _ => "secondary"
+        };
+    }
+} 

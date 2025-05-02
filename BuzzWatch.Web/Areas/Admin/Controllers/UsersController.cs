@@ -1,7 +1,9 @@
+using BuzzWatch.Web.Models.Api;
 using BuzzWatch.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http.Json;
+using System.Text.Json;
 
 namespace BuzzWatch.Web.Areas.Admin.Controllers
 {
@@ -23,8 +25,40 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
         {
             try
             {
-                // This will eventually call the API to get a list of users
-                var users = new List<UserViewModel>
+                // Fetch users from API
+                var usersResponse = await FetchUsersAsync();
+                
+                // Map API response to view model
+                var users = usersResponse?.Select(u => new UserViewModel
+                {
+                    Id = u.Id,
+                    Email = u.Email,
+                    Name = u.Name,
+                    Role = u.Role,
+                    IsActive = u.IsActive
+                }).ToList() ?? new List<UserViewModel>();
+                
+                // If the API request failed, add at least the admin user
+                if (users.Count == 0)
+                {
+                    users.Add(new UserViewModel
+                    {
+                        Id = Guid.NewGuid(),
+                        Email = "admin@local",
+                        Name = "Admin User",
+                        Role = "Admin",
+                        IsActive = true
+                    });
+                }
+
+                return View(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching users");
+                
+                // Return a minimal list with just the admin user
+                var fallbackUsers = new List<UserViewModel>
                 {
                     new UserViewModel
                     {
@@ -35,13 +69,8 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
                         IsActive = true
                     }
                 };
-
-                return View(users);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching users");
-                return View("Error");
+                
+                return View(fallbackUsers);
             }
         }
 
@@ -60,9 +89,31 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
             {
                 try
                 {
-                    // This will eventually call the API to create a user
-                    // For now, just redirect back to the index
-                    return RedirectToAction(nameof(Index));
+                    // Map view model to API request
+                    var createRequest = new CreateUserRequest
+                    {
+                        Email = model.Email,
+                        Name = model.Name,
+                        Password = model.Password,
+                        Role = model.Role
+                    };
+                    
+                    // Send request to API
+                    var response = await _apiClient.PostAsJsonAsync("/api/v1/admin/users", createRequest);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        TempData["SuccessMessage"] = "User created successfully.";
+                        return RedirectToAction(nameof(Index));
+                    }
+                    
+                    // Handle error responses
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    
+                    _logger.LogWarning("API returned error: {StatusCode} - {Content}", 
+                        response.StatusCode, errorContent);
+                    
+                    ModelState.AddModelError("", $"Error from API: {errorContent}");
                 }
                 catch (Exception ex)
                 {
@@ -73,20 +124,28 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
 
             return View(model);
         }
-
+        
         // GET: /Admin/Users/Edit/5
         public async Task<IActionResult> Edit(Guid id)
         {
             try
             {
-                // This will eventually call the API to get the user details
+                // Fetch user from API
+                var userResponse = await FetchUserAsync(id);
+                
+                if (userResponse == null)
+                {
+                    return NotFound();
+                }
+                
+                // Map API response to view model
                 var user = new EditUserViewModel
                 {
-                    Id = id,
-                    Email = "admin@local",
-                    Name = "Admin User",
-                    Role = "Admin",
-                    IsActive = true
+                    Id = userResponse.Id,
+                    Email = userResponse.Email,
+                    Name = userResponse.Name,
+                    Role = userResponse.Role,
+                    IsActive = userResponse.IsActive
                 };
 
                 return View(user);
@@ -112,8 +171,32 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
             {
                 try
                 {
-                    // This will eventually call the API to update the user
-                    return RedirectToAction(nameof(Index));
+                    // Map view model to API request
+                    var updateRequest = new UpdateUserRequest
+                    {
+                        Email = model.Email,
+                        Name = model.Name,
+                        Role = model.Role,
+                        IsActive = model.IsActive,
+                        Password = !string.IsNullOrEmpty(model.NewPassword) ? model.NewPassword : null
+                    };
+                    
+                    // Send request to API
+                    var response = await _apiClient.PutAsJsonAsync($"/api/v1/admin/users/{id}", updateRequest);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        TempData["SuccessMessage"] = "User updated successfully.";
+                        return RedirectToAction(nameof(Index));
+                    }
+                    
+                    // Handle error response
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    
+                    _logger.LogWarning("API returned error: {StatusCode} - {Content}", 
+                        response.StatusCode, errorContent);
+                    
+                    ModelState.AddModelError("", $"Error from API: {errorContent}");
                 }
                 catch (Exception ex)
                 {
@@ -124,27 +207,110 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
 
             return View(model);
         }
+        
+        // POST: /Admin/Users/Delete/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(Guid id)
+        {
+            try
+            {
+                // Send request to API
+                var response = await _apiClient.DeleteAsync($"/api/v1/admin/users/{id}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["SuccessMessage"] = "User deleted successfully.";
+                    return RedirectToAction(nameof(Index));
+                }
+                
+                // Handle error response
+                string errorContent = await response.Content.ReadAsStringAsync();
+                
+                _logger.LogWarning("API returned error: {StatusCode} - {Content} when deleting user {UserId}", 
+                    response.StatusCode, errorContent, id);
+                
+                TempData["ErrorMessage"] = $"Error deleting user: {errorContent}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting user {UserId}", id);
+                TempData["ErrorMessage"] = "Error deleting user. Please try again.";
+            }
+            
+            return RedirectToAction(nameof(Index));
+        }
 
         // GET: /Admin/Users/Devices/5
         public async Task<IActionResult> Devices(Guid id)
         {
             try
             {
-                // This will eventually call the API to get the user's device permissions
-                var viewModel = new UserDevicesViewModel
+                // Fetch user details
+                var user = await FetchUserAsync(id);
+                if (user == null)
+                {
+                    return NotFound();
+                }
+                
+                // Fetch user's device permissions
+                var userDevices = await FetchUserDevicePermissionsAsync(id);
+                
+                // Fetch all available devices 
+                var allDevices = await FetchDevicesAsync();
+                
+                // Create a list that includes all devices, marking which ones the user has access to
+                var devices = new List<UserDevicePermission>();
+                
+                // If we have both device lists
+                if (allDevices != null && userDevices != null)
+                {
+                    // First add the devices the user already has access to
+                    foreach (var device in userDevices)
+                    {
+                        devices.Add(new UserDevicePermission
+                        {
+                            DeviceId = device.DeviceId,
+                            DeviceName = device.DeviceName,
+                            DeviceLocation = device.DeviceLocation,
+                            HasAccess = device.HasAccess,
+                            CanManage = device.CanManage
+                        });
+                    }
+                    
+                    // Then add devices the user doesn't have any permissions for
+                    foreach (var device in allDevices)
+                    {
+                        if (!devices.Any(d => d.DeviceId == device.Id))
+                        {
+                            devices.Add(new UserDevicePermission
+                            {
+                                DeviceId = device.Id,
+                                DeviceName = device.Name,
+                                DeviceLocation = device.Location,
+                                HasAccess = false,
+                                CanManage = false
+                            });
+                        }
+                    }
+                }
+                
+                // Create the view model
+                var model = new UserDevicesViewModel
                 {
                     UserId = id,
-                    UserName = "Admin User",
-                    UserEmail = "admin@local",
-                    Devices = new List<UserDevicePermission>()
+                    UserName = user.Name,
+                    UserEmail = user.Email,
+                    Devices = devices
                 };
-
-                return View(viewModel);
+                
+                return View(model);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error fetching devices for user {UserId}", id);
-                return NotFound();
+                _logger.LogError(ex, "Error retrieving devices for user {UserId}", id);
+                TempData["ErrorMessage"] = "Error retrieving device permissions.";
+                return RedirectToAction(nameof(Index));
             }
         }
 
@@ -153,31 +319,175 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AssignDevice(AssignDeviceViewModel model)
         {
-            if (ModelState.IsValid)
+            try
             {
-                try
+                // Map view model to API request
+                var updateRequest = new UpdateUserDeviceRequest
                 {
-                    // This will eventually call the API to assign the device to the user
-                    return RedirectToAction(nameof(Devices), new { id = model.UserId });
+                    UserId = model.UserId,
+                    DeviceId = model.DeviceId,
+                    HasAccess = model.HasAccess,
+                    CanManage = model.CanManage
+                };
+                
+                // Send request to API
+                var response = await _apiClient.PostAsJsonAsync("/api/v1/admin/user-devices", updateRequest);
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["SuccessMessage"] = "Device permissions updated successfully.";
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, "Error assigning device to user");
-                    ModelState.AddModelError("", "Error assigning device. Please try again.");
+                    // Handle error response
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    
+                    _logger.LogWarning("API returned error: {StatusCode} - {Content} when updating device permissions", 
+                        response.StatusCode, errorContent);
+                    
+                    TempData["ErrorMessage"] = $"Error updating device permissions: {errorContent}";
                 }
             }
-
-            // Rebuild the user devices view model
-            var viewModel = new UserDevicesViewModel
+            catch (Exception ex)
             {
-                UserId = model.UserId,
-                UserName = "User Name", // This would be populated from the API
-                UserEmail = "user@email.com", // This would be populated from the API
-                Devices = new List<UserDevicePermission>() // This would be populated from the API
-            };
-
-            return View(nameof(Devices), viewModel);
+                _logger.LogError(ex, "Error assigning device {DeviceId} to user {UserId}", 
+                    model.DeviceId, model.UserId);
+                TempData["ErrorMessage"] = "Error updating device permissions.";
+            }
+            
+            return RedirectToAction(nameof(Devices), new { id = model.UserId });
         }
+        
+        // POST: /Admin/Users/RemoveDevice
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RemoveDevice(Guid userId, Guid deviceId)
+        {
+            try
+            {
+                // Send request to API
+                var response = await _apiClient.DeleteAsync($"/api/v1/admin/user-devices?userId={userId}&deviceId={deviceId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    TempData["SuccessMessage"] = "Device access removed successfully.";
+                }
+                else
+                {
+                    // Handle error response
+                    string errorContent = await response.Content.ReadAsStringAsync();
+                    
+                    _logger.LogWarning("API returned error: {StatusCode} - {Content} when removing device access", 
+                        response.StatusCode, errorContent);
+                    
+                    TempData["ErrorMessage"] = $"Error removing device access: {errorContent}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing device {DeviceId} from user {UserId}", 
+                    deviceId, userId);
+                TempData["ErrorMessage"] = "Error removing device access.";
+            }
+            
+            return RedirectToAction(nameof(Devices), new { id = userId });
+        }
+        
+        #region API Helper Methods
+        
+        private async Task<List<UserResponse>?> FetchUsersAsync()
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync("/api/v1/admin/users");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<UserResponse>>();
+                }
+                
+                _logger.LogWarning("API returned status code {StatusCode} when fetching users", 
+                    response.StatusCode);
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception while fetching users from API");
+                return null;
+            }
+        }
+        
+        private async Task<UserResponse?> FetchUserAsync(Guid id)
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync($"/api/v1/admin/users/{id}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<UserResponse>();
+                }
+                
+                _logger.LogWarning("API returned status code {StatusCode} when fetching user {UserId}", 
+                    response.StatusCode, id);
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception while fetching user {UserId} from API", id);
+                return null;
+            }
+        }
+        
+        private async Task<List<UserDeviceResponse>?> FetchUserDevicePermissionsAsync(Guid userId)
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync($"/api/v1/admin/user-devices?userId={userId}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<UserDeviceResponse>>();
+                }
+                
+                _logger.LogWarning("API returned status code {StatusCode} when fetching device permissions for user {UserId}", 
+                    response.StatusCode, userId);
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception while fetching device permissions for user {UserId} from API", userId);
+                return null;
+            }
+        }
+        
+        private async Task<List<DeviceResponse>?> FetchDevicesAsync()
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync("/api/v1/admin/devices");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    return await response.Content.ReadFromJsonAsync<List<DeviceResponse>>();
+                }
+                
+                _logger.LogWarning("API returned status code {StatusCode} when fetching devices", 
+                    response.StatusCode);
+                
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception while fetching devices from API");
+                return null;
+            }
+        }
+        
+        #endregion
     }
 
     public class UserViewModel

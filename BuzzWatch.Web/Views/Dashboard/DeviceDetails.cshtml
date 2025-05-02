@@ -1,0 +1,293 @@
+@model BuzzWatch.Web.Models.DeviceDetailViewModel
+@{
+    ViewData["Title"] = $"Device - {Model.Device.Name}";
+}
+
+<div class="container mx-auto px-4 py-6">
+    <div class="mb-6">
+        <a href="@Url.Action("Index")" class="text-blue-600 hover:text-blue-800">
+            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 mb-6">
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">@Model.Device.Name</h1>
+                @{
+                    var statusClass = Model.Device.Status == "Online" 
+                        ? "bg-green-100 text-green-800" 
+                        : "bg-gray-100 text-gray-800";
+                }
+                <span class="px-3 py-1 rounded-full text-sm font-medium @statusClass">
+                    @Model.Device.Status
+                </span>
+            </div>
+            <p class="text-gray-500">@Model.Device.Location</p>
+            <p class="text-sm text-gray-500 mt-1">Device ID: @Model.Device.Id</p>
+        </div>
+
+        <div class="p-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <div class="text-sm text-gray-500">Temperature</div>
+                    <div class="text-2xl font-bold">@(Model.LatestTemperature?.ToString("F1") ?? "--") °C</div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <div class="text-sm text-gray-500">Humidity</div>
+                    <div class="text-2xl font-bold">@(Model.LatestHumidity?.ToString("F1") ?? "--") %</div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <div class="text-sm text-gray-500">Weight</div>
+                    <div class="text-2xl font-bold">@(Model.LatestWeight?.ToString("F1") ?? "--") kg</div>
+                </div>
+                <div class="bg-blue-50 p-4 rounded-lg text-center">
+                    <div class="text-sm text-gray-500">Battery</div>
+                    <div class="text-2xl font-bold">@(Model.LatestBatteryLevel?.ToString("F1") ?? "--") %</div>
+                </div>
+            </div>
+
+            <!-- Measurement Charts -->
+            <div class="mb-8">
+                <h2 class="text-xl font-semibold mb-4">Measurement History</h2>
+                
+                <div class="p-4 bg-gray-50 rounded-lg mb-4">
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-lg font-medium">Temperature & Humidity</h3>
+                        <div class="flex gap-2">
+                            <button class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md time-range active" data-range="24h">24h</button>
+                            <button class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md time-range" data-range="7d">7d</button>
+                            <button class="px-3 py-1 text-sm bg-white border border-gray-300 rounded-md time-range" data-range="30d">30d</button>
+                        </div>
+                    </div>
+                    <div class="h-64">
+                        <canvas id="temperatureHumidityChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <h3 class="text-lg font-medium mb-2">Weight</h3>
+                    <div class="h-64">
+                        <canvas id="weightChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alerts Section -->
+            <div class="mb-6">
+                <h2 class="text-xl font-semibold mb-4">Alerts</h2>
+                @if (Model.Alerts.Any())
+                {
+                    <div class="divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
+                        @foreach (var alert in Model.Alerts.OrderByDescending(a => a.Timestamp).Take(5))
+                        {
+                            var alertClass = alert.Severity == "High" ? "bg-red-50" : 
+                                            alert.Severity == "Medium" ? "bg-yellow-50" : 
+                                            "bg-blue-50";
+                            
+                            <div class="p-4 @alertClass">
+                                <div class="flex justify-between">
+                                    <span class="font-medium">@alert.Message</span>
+                                    <span class="text-sm text-gray-500">@alert.Timestamp.ToString("g")</span>
+                                </div>
+                                <div class="text-sm text-gray-600 mt-1">
+                                    Status: @alert.Status
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (Model.Alerts.Count > 5)
+                    {
+                        <div class="mt-2 text-right">
+                            <a href="#" class="text-blue-600 hover:text-blue-800 text-sm">View all @Model.Alerts.Count alerts</a>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center p-6 bg-gray-50 rounded-lg">
+                        <i class="bi bi-shield-check text-4xl text-green-500"></i>
+                        <p class="mt-2">No alerts for this device.</p>
+                    </div>
+                }
+            </div>
+
+            <!-- Device Information -->
+            <div>
+                <h2 class="text-xl font-semibold mb-4">Device Information</h2>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-sm text-gray-500">Device Type</p>
+                            <p class="font-medium">@Model.Device.Type</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Firmware Version</p>
+                            <p class="font-medium">@Model.Device.FirmwareVersion</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Last Seen</p>
+                            <p class="font-medium">@Model.Device.LastSeen.ToString("g")</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-gray-500">Installed On</p>
+                            <p class="font-medium">@(Model.Device.InstalledOn.HasValue ? Model.Device.InstalledOn.Value.ToString("d") : "N/A")</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chart.js/chart.umd.js"></script>
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const temperatureHumidityCtx = document.getElementById('temperatureHumidityChart').getContext('2d');
+            const weightCtx = document.getElementById('weightChart').getContext('2d');
+            
+            // Format chart data
+            const timestamps = @Html.Raw(Json.Serialize(Model.ChartLabels));
+            const temperatures = @Html.Raw(Json.Serialize(Model.TemperatureData));
+            const humidities = @Html.Raw(Json.Serialize(Model.HumidityData));
+            const weights = @Html.Raw(Json.Serialize(Model.WeightData));
+            
+            // Create Temperature & Humidity Chart
+            const tempHumidityChart = new Chart(temperatureHumidityCtx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [
+                        {
+                            label: 'Temperature (°C)',
+                            data: temperatures,
+                            borderColor: 'rgb(239, 68, 68)',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: 'Humidity (%)',
+                            data: humidities,
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Temperature (°C)'
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Humidity (%)'
+                            },
+                            grid: {
+                                drawOnChartArea: false,
+                            },
+                        },
+                    }
+                }
+            });
+            
+            // Create Weight Chart
+            const weightChart = new Chart(weightCtx, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'Weight (kg)',
+                        data: weights,
+                        borderColor: 'rgb(16, 185, 129)',
+                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: {
+                                display: true,
+                                text: 'Weight (kg)'
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Time range buttons
+            const timeRangeButtons = document.querySelectorAll('.time-range');
+            timeRangeButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    timeRangeButtons.forEach(btn => btn.classList.remove('active', 'bg-blue-100'));
+                    this.classList.add('active', 'bg-blue-100');
+                    
+                    // Here you would fetch new data based on the selected time range
+                    // and update the charts. For now, we'll just simulate it
+                    const range = this.dataset.range;
+                    console.log(`Fetching data for time range: ${range}`);
+                    
+                    // Update charts (this would be replaced with real data update logic)
+                    // This is just placeholder behavior
+                    tempHumidityChart.data.labels = timestamps.slice(0, range === '24h' ? 24 : range === '7d' ? 48 : timestamps.length);
+                    tempHumidityChart.data.datasets[0].data = temperatures.slice(0, range === '24h' ? 24 : range === '7d' ? 48 : temperatures.length);
+                    tempHumidityChart.data.datasets[1].data = humidities.slice(0, range === '24h' ? 24 : range === '7d' ? 48 : humidities.length);
+                    tempHumidityChart.update();
+                    
+                    weightChart.data.labels = timestamps.slice(0, range === '24h' ? 24 : range === '7d' ? 48 : timestamps.length);
+                    weightChart.data.datasets[0].data = weights.slice(0, range === '24h' ? 24 : range === '7d' ? 48 : weights.length);
+                    weightChart.update();
+                });
+            });
+            
+            // SignalR connection for real-time updates
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/measurements")
+                .withAutomaticReconnect()
+                .build();
+                
+            connection.on("ReceiveMeasurement", (measurement) => {
+                // Only update if this is for our current device
+                if (measurement.deviceId === '@Model.Device.Id') {
+                    // Add new data point to charts
+                    // This would need proper implementation in a real app
+                    console.log('Received real-time measurement update', measurement);
+                }
+            });
+            
+            // Start the connection
+            connection.start().catch(err => console.error(err));
+        });
+    </script>
+} 

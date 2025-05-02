@@ -1,0 +1,48 @@
+@model BuzzWatch.Web.Areas.Admin.Controllers.EditDeviceViewModel
+
+@{
+    ViewData["Title"] = $"Edit {Model.Name}";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Edit Device</div>
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to List
+            </a>
+            <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-info-circle me-1"></i> Details
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="Edit" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            <input type="hidden" asp-for="Id" />
+            
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Device Name</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+                <div class="form-text">A descriptive name for the device</div>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Location" class="form-label">Location</label>
+                <input asp-for="Location" class="form-control" />
+                <span asp-validation-for="Location" class="text-danger"></span>
+                <div class="form-text">Where the device is located</div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

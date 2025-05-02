@@ -1,8 +1,213 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model BuzzWatch.Web.Models.HomeOverviewViewModel
+@{
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
-</div>
+@if (!User.Identity?.IsAuthenticated ?? false)
+{
+    <!-- Marketing landing page for anonymous users -->
+    <div class="px-4 py-5 my-5 text-center">
+        <i class="bi bi-hexagon-fill display-1 text-warning mb-4"></i>
+        <h1 class="display-5 fw-bold text-body-emphasis">Welcome to BuzzWatch</h1>
+        <div class="col-lg-6 mx-auto">
+            <p class="lead mb-4">
+                The intelligent beehive monitoring solution for beekeepers. Track temperature, humidity, weight,
+                and more to ensure your colonies stay healthy and productive.
+            </p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <a asp-area="" asp-controller="Account" asp-action="Login" class="btn btn-primary btn-lg px-4 gap-3">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Sign In
+                </a>
+                <a href="#features" class="btn btn-outline-secondary btn-lg px-4">Learn More</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="container py-5" id="features">
+        <h2 class="text-center mb-5">Key Features</h2>
+        
+        <div class="row g-4 row-cols-1 row-cols-lg-3">
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-graph-up text-primary display-4 mb-3"></i>
+                        <h3 class="card-title h5">Real-time Monitoring</h3>
+                        <p class="card-text">Track temperature, humidity, weight, and other vital hive parameters in real-time.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-bell text-primary display-4 mb-3"></i>
+                        <h3 class="card-title h5">Smart Alerts</h3>
+                        <p class="card-text">Receive instant notifications when your hives need attention or when conditions change.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body text-center p-4">
+                        <i class="bi bi-calendar-check text-primary display-4 mb-3"></i>
+                        <h3 class="card-title h5">Historical Analysis</h3>
+                        <p class="card-text">Review historical data to identify patterns and optimize your beekeeping strategy.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <!-- Dashboard overview for authenticated users -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-4">
+                    <h2 class="card-title">Welcome back, @User.Identity?.Name?.Split('@').FirstOrDefault()!</h2>
+                    <p class="text-muted">Here's an overview of your beehive monitoring system.</p>
+                    
+                    @if (!Model.HasDevices)
+                    {
+                        <div class="alert alert-info mt-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <span>You don't have any devices yet. Start monitoring your hives by adding a device.</span>
+                            <a href="#" class="alert-link ms-2">Add your first device</a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    @if (Model.HasDevices)
+    {
+        <div class="row g-4 mb-4">
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Devices</h5>
+                        <div class="d-flex align-items-center mt-3">
+                            <div class="flex-shrink-0">
+                                <div class="display-4 text-primary">@Model.TotalDevices</div>
+                            </div>
+                            <div class="flex-grow-1 ms-4">
+                                <div class="mb-1">
+                                    <i class="bi bi-circle-fill text-success me-1 small"></i> 
+                                    <span>@Model.OnlineDevices Online</span>
+                                </div>
+                                <div>
+                                    <i class="bi bi-circle-fill text-secondary me-1 small"></i> 
+                                    <span>@Model.OfflineDevices Offline</span>
+                                </div>
+                                <div class="progress mt-2" style="height: 8px;">
+                                    <div class="progress-bar bg-success" 
+                                         role="progressbar" 
+                                         style="width: @Model.DeviceOnlinePercentage%;" 
+                                         aria-valuenow="@Model.DeviceOnlinePercentage" 
+                                         aria-valuemin="0" 
+                                         aria-valuemax="100"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-sm btn-primary w-100">
+                            <i class="bi bi-speedometer2 me-1"></i> Go to Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Alerts</h5>
+                        <div class="d-flex align-items-center mt-3">
+                            <div class="flex-shrink-0">
+                                <div class="display-4 text-primary">@Model.ActiveAlerts</div>
+                            </div>
+                            <div class="flex-grow-1 ms-4">
+                                <div class="mb-1">
+                                    <i class="bi bi-exclamation-triangle-fill text-warning me-1 small"></i> 
+                                    <span>Active Alerts</span>
+                                </div>
+                                <div>
+                                    <i class="bi bi-check-circle-fill text-success me-1 small"></i> 
+                                    <span>@Model.ResolvedAlerts Resolved</span>
+                                </div>
+                                <div class="small text-muted mt-1">
+                                    @Model.TotalAlerts total alerts
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent border-top-0">
+                        <a href="#" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="bi bi-bell me-1"></i> View Alerts
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Quick Actions</h5>
+                        <div class="list-group list-group-flush mt-3">
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <i class="bi bi-plus-circle me-2 text-success"></i> Add New Device
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <i class="bi bi-sliders me-2 text-primary"></i> Configure Alert Rules
+                            </a>
+                            <a href="#" class="list-group-item list-group-item-action">
+                                <i class="bi bi-download me-2 text-secondary"></i> Export Data
+                            </a>
+                            <a asp-controller="Notifications" asp-action="Index" class="list-group-item list-group-item-action">
+                                <i class="bi bi-bell me-2 text-warning"></i> Notifications Center
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Recent Activity</h5>
+                        <a href="#" class="btn btn-sm btn-outline-secondary">View All</a>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="list-group list-group-flush">
+                            <!-- Placeholder for recent activity -->
+                            <div class="list-group-item py-3">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Temperature Alert - Hive #3</h6>
+                                    <small class="text-muted">3 hours ago</small>
+                                </div>
+                                <p class="mb-1">Temperature exceeded 35°C. Check ventilation.</p>
+                            </div>
+                            <div class="list-group-item py-3">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">Weight Change - Hive #1</h6>
+                                    <small class="text-muted">Yesterday</small>
+                                </div>
+                                <p class="mb-1">Weight increased by 1.2kg in the last 24 hours.</p>
+                            </div>
+                            <div class="list-group-item py-3">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">System Update</h6>
+                                    <small class="text-muted">2 days ago</small>
+                                </div>
+                                <p class="mb-1">BuzzWatch firmware updated to version 1.2.5</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}

@@ -19,28 +19,28 @@ namespace BuzzWatch.Api.Authorization
             _httpContextAccessor = httpContextAccessor;
         }
 
-        protected override async Task HandleRequirementAsync(
+        protected override Task HandleRequirementAsync(
             AuthorizationHandlerContext context,
             OwnsDeviceRequirement requirement)
         {
             // Get the device ID from the route
             var routeData = _httpContextAccessor.HttpContext?.GetRouteData();
             if (routeData == null || !routeData.Values.TryGetValue("deviceId", out var deviceIdObj))
-                return;
+                return Task.CompletedTask;
 
             if (!Guid.TryParse(deviceIdObj?.ToString(), out var deviceId))
-                return;
+                return Task.CompletedTask;
 
             // Get the user ID from the claims
             var userId = context.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             if (userId == null || !Guid.TryParse(userId, out var userGuid))
-                return;
+                return Task.CompletedTask;
 
             // Check if the user is an admin - admins can access all devices
             if (context.User.IsInRole("Admin"))
             {
                 context.Succeed(requirement);
-                return;
+                return Task.CompletedTask;
             }
 
             // For now, we'll just assume there's a UserDevice table
@@ -52,6 +52,8 @@ namespace BuzzWatch.Api.Authorization
             
             if (userOwnsDevice)
                 context.Succeed(requirement);
+
+            return Task.CompletedTask;
         }
     }
 } 

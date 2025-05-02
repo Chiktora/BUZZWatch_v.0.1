@@ -1,0 +1,138 @@
+@model List<BuzzWatch.Web.Areas.Admin.Controllers.DeviceViewModel>
+
+@{
+    ViewData["Title"] = "Device Management";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>All Devices</div>
+        <div>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="bi bi-plus-circle me-1"></i> Add New Device
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Status</th>
+                            <th>Battery</th>
+                            <th>Last Seen</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var device in Model)
+                        {
+                            <tr>
+                                <td>@device.Name</td>
+                                <td>@device.Location</td>
+                                <td>
+                                    @if (device.Status.ToLower() == "online")
+                                    {
+                                        <span class="badge bg-success">Online</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Offline</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="progress" style="height: 6px; width: 60px;">
+                                        @{
+                                            var batteryClass = device.BatteryLevel > 60 ? "bg-success" : 
+                                                              device.BatteryLevel > 30 ? "bg-warning" : "bg-danger";
+                                        }
+                                        <div class="progress-bar @batteryClass" role="progressbar" 
+                                             style="width: @device.BatteryLevel%;" 
+                                             aria-valuenow="@device.BatteryLevel" aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                    <small class="text-muted">@device.BatteryLevel%</small>
+                                </td>
+                                <td>@device.LastSeen.ToString("g")</td>
+                                <td class="text-end">
+                                    <div class="btn-group">
+                                        <a asp-action="Details" asp-route-id="@device.Id" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-info-circle"></i>
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@device.Id" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteModal@(device.Id)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Delete Modal -->
+                                    <div class="modal fade" id="deleteModal@(device.Id)" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Confirm Delete</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Are you sure you want to delete the device <strong>@device.Name</strong>? This action cannot be undone.
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                    <form asp-action="Delete" asp-route-id="@device.Id" method="post">
+                                                        <button type="submit" class="btn btn-danger">Delete</button>
+                                                    </form>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-5">
+                <i class="bi bi-hdd-rack fs-1 text-secondary"></i>
+                <p class="mt-3">No devices have been added yet</p>
+                <a asp-action="Create" class="btn btn-primary mt-2">
+                    <i class="bi bi-plus-circle me-1"></i> Add Your First Device
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    </script>
+} 

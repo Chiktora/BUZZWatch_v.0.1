@@ -9,6 +9,7 @@ namespace BuzzWatch.Api.Authentication
 {
     public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
     {
+        public TimeProvider? TimeProvider { get; set; }
     }
 
     public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
@@ -19,10 +20,9 @@ namespace BuzzWatch.Api.Authentication
         public ApiKeyAuthenticationHandler(
             IOptionsMonitor<ApiKeyAuthenticationOptions> options, 
             ILoggerFactory logger,
-            UrlEncoder encoder, 
-            ISystemClock clock,
+            UrlEncoder encoder,
             ApplicationDbContext db)
-            : base(options, logger, encoder, clock) => _db = db;
+            : base(options, logger, encoder) => _db = db;
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {

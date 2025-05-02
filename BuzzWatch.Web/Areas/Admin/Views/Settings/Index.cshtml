@@ -1,0 +1,93 @@
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title mb-4">Configuration Settings</h5>
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="text-center mb-3">
+                            <i class="bi bi-gear-fill text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title text-center">System Settings</h5>
+                        <p class="card-text">Configure basic system settings including email servers, site name, and time zones.</p>
+                        <div class="mt-auto">
+                            <a asp-action="System" class="btn btn-primary w-100">Manage System Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="text-center mb-3">
+                            <i class="bi bi-cloud text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title text-center">API Settings</h5>
+                        <p class="card-text">Configure API rate limits, allowed origins, and API key expiration settings.</p>
+                        <div class="mt-auto">
+                            <a asp-action="Api" class="btn btn-primary w-100">Manage API Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col">
+                <div class="card h-100">
+                    <div class="card-body d-flex flex-column">
+                        <div class="text-center mb-3">
+                            <i class="bi bi-bell-fill text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title text-center">Alert Settings</h5>
+                        <p class="card-text">Configure alert notification behavior, resolve times, and notification channels.</p>
+                        <div class="mt-auto">
+                            <a asp-action="Alerts" class="btn btn-primary w-100">Manage Alert Settings</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card mt-4">
+    <div class="card-header">
+        System Information
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <strong>Application Version:</strong>
+            </div>
+            <div class="col-md-9">
+                1.0.0
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <strong>Database Status:</strong>
+            </div>
+            <div class="col-md-9">
+                <span class="badge bg-success">Connected</span>
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <strong>Last Database Backup:</strong>
+            </div>
+            <div class="col-md-9">
+                @DateTime.Now.AddDays(-1).ToString("yyyy-MM-dd HH:mm:ss")
+            </div>
+        </div>
+        <div class="row mb-3">
+            <div class="col-md-3">
+                <strong>Environment:</strong>
+            </div>
+            <div class="col-md-9">
+                Production
+            </div>
+        </div>
+    </div>
+</div> 

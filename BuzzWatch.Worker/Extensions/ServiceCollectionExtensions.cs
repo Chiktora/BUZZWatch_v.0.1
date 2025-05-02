@@ -15,7 +15,7 @@ public static class ServiceCollectionExtensions
         // Add Quartz scheduler
         services.AddQuartz(configurator =>
         {
-            configurator.UseMicrosoftDependencyInjectionJobFactory();
+            // UseMicrosoftDependencyInjectionJobFactory is now the default and this call is obsolete
             
             // Alert Engine job - runs every 30 seconds
             configurator.ScheduleJob<AlertEngineJob>(trigger => trigger

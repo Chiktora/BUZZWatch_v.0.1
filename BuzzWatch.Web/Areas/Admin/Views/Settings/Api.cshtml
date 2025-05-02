@@ -1,0 +1,95 @@
+@model BuzzWatch.Web.Areas.Admin.Controllers.ApiSettingsViewModel
+
+@{
+    ViewData["Title"] = "API Settings";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>API Settings</div>
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Settings
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        <form asp-action="Api" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            
+            <h5 class="mb-3">API Rate Limiting</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="ApiRateLimitPerMinute" class="form-label">API Rate Limit (per minute)</label>
+                        <input asp-for="ApiRateLimitPerMinute" class="form-control" type="number" min="1" max="1000" />
+                        <span asp-validation-for="ApiRateLimitPerMinute" class="text-danger"></span>
+                        <small class="form-text text-muted">Maximum number of API requests allowed per minute per client</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="DefaultApiKeyExpiryDays" class="form-label">Default API Key Expiry (days)</label>
+                        <input asp-for="DefaultApiKeyExpiryDays" class="form-control" type="number" min="1" />
+                        <span asp-validation-for="DefaultApiKeyExpiryDays" class="text-danger"></span>
+                        <small class="form-text text-muted">Default number of days before API keys expire</small>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="mb-3 mt-4">CORS Settings</h5>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="mb-3 form-check">
+                        <input asp-for="EnableCors" class="form-check-input" />
+                        <label asp-for="EnableCors" class="form-check-label">Enable CORS</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="mb-3">
+                        <label asp-for="AllowedOrigins" class="form-label">Allowed Origins</label>
+                        <input asp-for="AllowedOrigins" class="form-control" />
+                        <span asp-validation-for="AllowedOrigins" class="text-danger"></span>
+                        <small class="form-text text-muted">Comma-separated list of domains allowed to make cross-origin requests (e.g., https://example.com,https://api.example.com)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="mb-3 mt-4">Documentation</h5>
+            <div class="row mb-3">
+                <div class="col-md-12">
+                    <div class="mb-3 form-check">
+                        <input asp-for="EnableSwagger" class="form-check-input" />
+                        <label asp-for="EnableSwagger" class="form-check-label">Enable Swagger Documentation</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    </script>
+} 

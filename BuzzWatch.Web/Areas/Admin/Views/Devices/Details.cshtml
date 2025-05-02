@@ -1,0 +1,184 @@
+@model BuzzWatch.Web.Areas.Admin.Controllers.DeviceDetailsViewModel
+
+@{
+    ViewData["Title"] = Model.Name;
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Device Details</div>
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to List
+            </a>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-primary">
+                <i class="bi bi-pencil me-1"></i> Edit
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        @if (TempData["ApiKey"] != null)
+        {
+            <div class="alert alert-warning alert-dismissible fade show" role="alert">
+                <strong>New API Key Generated:</strong>
+                <div class="my-2 p-2 bg-light border rounded">
+                    <code class="text-dark">@TempData["ApiKey"]</code>
+                </div>
+                <p class="small mb-0">Please save this key securely. For security reasons, you won't be able to see it again.</p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">Basic Information</div>
+                    <div class="card-body">
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Device ID</label>
+                            <div class="col-sm-8">
+                                <p class="form-control-plaintext">@Model.Id</p>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Name</label>
+                            <div class="col-sm-8">
+                                <p class="form-control-plaintext">@Model.Name</p>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Location</label>
+                            <div class="col-sm-8">
+                                <p class="form-control-plaintext">@Model.Location</p>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Status</label>
+                            <div class="col-sm-8">
+                                <p class="form-control-plaintext">
+                                    @if (Model.Status.ToLower() == "online")
+                                    {
+                                        <span class="badge bg-success">Online</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Offline</span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <label class="col-sm-4 col-form-label">Last Seen</label>
+                            <div class="col-sm-8">
+                                <p class="form-control-plaintext">@Model.LastSeen.ToString("g")</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card mb-3">
+                    <div class="card-header">Status</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">Battery Level</label>
+                            <div class="d-flex align-items-center">
+                                <div class="flex-grow-1 me-2">
+                                    <div class="progress" style="height: 10px;">
+                                        @{
+                                            var batteryClass = Model.BatteryLevel > 60 ? "bg-success" : 
+                                                          Model.BatteryLevel > 30 ? "bg-warning" : "bg-danger";
+                                        }
+                                        <div class="progress-bar @batteryClass" role="progressbar" 
+                                             style="width: @Model.BatteryLevel%;" 
+                                             aria-valuenow="@Model.BatteryLevel" aria-valuemin="0" aria-valuemax="100">
+                                        </div>
+                                    </div>
+                                </div>
+                                <span>@Model.BatteryLevel%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">API Access</div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label">API Key</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" value="@Model.ApiKey" readonly>
+                                <button class="btn btn-primary" type="button" 
+                                        data-bs-toggle="modal" data-bs-target="#regenerateKeyModal">
+                                    Regenerate
+                                </button>
+                            </div>
+                            <div class="form-text">Used for authenticating device communication with the API.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Charts could go here -->
+        <div class="card mt-3">
+            <div class="card-header">Recent Measurements</div>
+            <div class="card-body">
+                <p class="text-center text-muted">
+                    Measurement charts will be implemented in a future update.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Regenerate API Key Modal -->
+<div class="modal fade" id="regenerateKeyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Regenerate API Key</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    Warning! Regenerating the API key will invalidate the current key.
+                    Any devices using the current key will need to be updated with the new key.
+                </div>
+                <p>Are you sure you want to regenerate the API key for <strong>@Model.Name</strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form asp-action="GenerateApiKey" asp-route-id="@Model.Id" method="post">
+                    <button type="submit" class="btn btn-primary">Regenerate Key</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-dismiss alerts after 10 seconds
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 10000);
+    </script>
+} 

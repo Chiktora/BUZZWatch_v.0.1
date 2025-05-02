@@ -72,7 +72,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
     
     // Seed identity data in development
-    await app.Services.SeedIdentityAsync();
+    using var scope = app.Services.CreateScope();
+    var services = scope.ServiceProvider;
+    services.SeedIdentityAsync().GetAwaiter().GetResult();
 }
 
 app.UseHttpsRedirection();

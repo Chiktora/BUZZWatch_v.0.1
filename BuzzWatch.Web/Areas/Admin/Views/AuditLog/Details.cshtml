@@ -1,0 +1,123 @@
+@model BuzzWatch.Web.Models.Admin.AuditLogEntry
+
+@{
+    ViewData["Title"] = "Audit Log Details";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Audit Log Details</div>
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Audit Log
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Event ID</label>
+                    <div>@Model?.Id</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Timestamp</label>
+                    <div>@Model?.Timestamp.ToString("F")</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">User</label>
+                    <div>@Model?.UserName (@Model?.UserId)</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">IP Address</label>
+                    <div>@Model?.IpAddress</div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Action</label>
+                    <div>
+                        <span class="badge bg-@GetActionBadgeColor(Model?.Action)">
+                            @Model?.Action
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Controller/Area</label>
+                    <div>@Model?.Area/@Model?.Controller</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Entity Type</label>
+                    <div>@Model?.EntityType</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label text-muted">Entity ID</label>
+                    <div>@Model?.EntityId</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="mb-3">
+            <label class="form-label text-muted">Description</label>
+            <div>@Model?.Description</div>
+        </div>
+        
+        @if (!string.IsNullOrEmpty(Model?.OldValues) || !string.IsNullOrEmpty(Model?.NewValues))
+        {
+            <h5 class="mt-4 mb-3">Changes</h5>
+            
+            <div class="row">
+                @if (!string.IsNullOrEmpty(Model?.OldValues))
+                {
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">Previous Values</div>
+                            <div class="card-body">
+                                <pre class="mb-0"><code>@Model?.OldValues</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                }
+                
+                @if (!string.IsNullOrEmpty(Model?.NewValues))
+                {
+                    <div class="col-md-6">
+                        <div class="card h-100">
+                            <div class="card-header">New Values</div>
+                            <div class="card-body">
+                                <pre class="mb-0"><code>@Model?.NewValues</code></pre>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@functions {
+    string GetActionBadgeColor(string? action)
+    {
+        if (action == null) return "secondary";
+        
+        return action.ToLower() switch
+        {
+            "create" => "success",
+            "add" => "success",
+            "update" => "primary",
+            "modify" => "primary",
+            "delete" => "danger",
+            "remove" => "danger",
+            "login" => "info",
+            "logout" => "info",
+            _ => "secondary"
+        };
+    }
+} 

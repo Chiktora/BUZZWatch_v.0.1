@@ -1,0 +1,59 @@
+@model List<BuzzWatch.Web.Models.Admin.AuditLogEntry>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Recent Activity</div>
+        <div>
+            <a asp-area="Admin" asp-controller="AuditLog" asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                View All
+            </a>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        @if (Model != null && Model.Any())
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var log in Model)
+                {
+                    <div class="list-group-item border-0 px-3 py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="badge bg-@GetActionBadgeColor(log.Action) me-2">@log.Action</span>
+                                <small class="text-muted">@log.Area/@log.Controller</small>
+                            </div>
+                            <small class="text-muted">@log.Timestamp.ToString("g")</small>
+                        </div>
+                        <div class="small mt-1">
+                            <strong>@log.UserName</strong> @log.Description
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-4">
+                <i class="bi bi-activity fs-1 text-secondary"></i>
+                <p class="mt-2">No recent activity</p>
+            </div>
+        }
+    </div>
+</div>
+
+@functions {
+    string GetActionBadgeColor(string action)
+    {
+        return action.ToLower() switch
+        {
+            "create" => "success",
+            "add" => "success",
+            "update" => "primary",
+            "modify" => "primary",
+            "delete" => "danger",
+            "remove" => "danger",
+            "login" => "info",
+            "logout" => "info",
+            _ => "secondary"
+        };
+    }
+} 

@@ -1,0 +1,123 @@
+@model BuzzWatch.Web.Areas.Admin.Controllers.SystemSettingsViewModel
+
+@{
+    ViewData["Title"] = "System Settings";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>System Settings</div>
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to Settings
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        <form asp-action="System" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+            
+            <h5 class="mb-3">Site Configuration</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="SiteTitle" class="form-label">Site Title</label>
+                        <input asp-for="SiteTitle" class="form-control" />
+                        <span asp-validation-for="SiteTitle" class="text-danger"></span>
+                        <small class="form-text text-muted">Displayed in the browser title and header</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="SystemTimeZone" class="form-label">System Time Zone</label>
+                        <select asp-for="SystemTimeZone" class="form-select">
+                            <option value="UTC">UTC</option>
+                            <option value="America/New_York">Eastern Time (ET)</option>
+                            <option value="America/Chicago">Central Time (CT)</option>
+                            <option value="America/Denver">Mountain Time (MT)</option>
+                            <option value="America/Los_Angeles">Pacific Time (PT)</option>
+                            <option value="Europe/London">London (GMT)</option>
+                            <option value="Europe/Paris">Central European Time (CET)</option>
+                        </select>
+                        <span asp-validation-for="SystemTimeZone" class="text-danger"></span>
+                        <small class="form-text text-muted">Default time zone for date and time display</small>
+                    </div>
+                </div>
+            </div>
+            
+            <h5 class="mb-3 mt-4">Email Configuration</h5>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="SmtpServer" class="form-label">SMTP Server</label>
+                        <input asp-for="SmtpServer" class="form-control" />
+                        <span asp-validation-for="SmtpServer" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="SmtpPort" class="form-label">SMTP Port</label>
+                        <input asp-for="SmtpPort" class="form-control" type="number" />
+                        <span asp-validation-for="SmtpPort" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="SmtpUsername" class="form-label">SMTP Username</label>
+                        <input asp-for="SmtpUsername" class="form-control" />
+                        <span asp-validation-for="SmtpUsername" class="text-danger"></span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <label asp-for="SmtpPassword" class="form-label">SMTP Password</label>
+                        <input asp-for="SmtpPassword" class="form-control" type="password" />
+                        <span asp-validation-for="SmtpPassword" class="text-danger"></span>
+                        <small class="form-text text-muted">Leave blank to keep existing password</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="mb-3 form-check">
+                        <input asp-for="SmtpRequiresAuth" class="form-check-input" />
+                        <label asp-for="SmtpRequiresAuth" class="form-check-label">SMTP Requires Authentication</label>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3 form-check">
+                        <input asp-for="EnableEmailNotifications" class="form-check-input" />
+                        <label asp-for="EnableEmailNotifications" class="form-check-label">Enable Email Notifications</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Save Settings</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Auto-dismiss alerts after 5 seconds
+        setTimeout(function() {
+            $('.alert').alert('close');
+        }, 5000);
+    </script>
+} 

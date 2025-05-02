@@ -11,7 +11,11 @@ namespace BuzzWatch.Api.Authentication
         {
             return builder.AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
                 ApiKeyAuthenticationHandler.Scheme, 
-                options => { });
+                options => 
+                {
+                    // Use system's default TimeProvider
+                    options.TimeProvider = TimeProvider.System;
+                });
         }
 
         public static JwtBearerOptions ConfigureJwtOptions(this JwtBearerOptions options, IConfiguration config)

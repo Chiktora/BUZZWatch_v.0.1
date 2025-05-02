@@ -1,0 +1,49 @@
+@model BuzzWatch.Web.Areas.Admin.Controllers.CreateDeviceViewModel
+
+@{
+    ViewData["Title"] = "Add New Device";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Add New Device</div>
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to List
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+            
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label">Device Name</label>
+                <input asp-for="Name" class="form-control" />
+                <span asp-validation-for="Name" class="text-danger"></span>
+                <div class="form-text">A descriptive name for the device (e.g., "Hive 1 Monitor")</div>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Location" class="form-label">Location</label>
+                <input asp-for="Location" class="form-control" />
+                <span asp-validation-for="Location" class="text-danger"></span>
+                <div class="form-text">Where the device is located (e.g., "North Field Apiary")</div>
+            </div>
+            
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                After creating the device, you'll be able to generate an API key for it.
+            </div>
+            
+            <div class="mt-4">
+                <button type="submit" class="btn btn-primary">Create Device</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+} 

@@ -45,6 +45,9 @@ namespace BuzzWatch.Web
             })
             .AddHttpMessageHandler<JwtDelegatingHandler>();
             
+            // Register audit logging service
+            builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+            
             builder.Services.AddControllersWithViews();
 
             var app = builder.Build();

@@ -3,27 +3,114 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="container">
-    <h1 class="my-4">BuzzWatch Dashboard</h1>
-    
-    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        @foreach (var d in Model.Devices)
-        {
-            <div class="card shadow p-4" id="device-@d.Id">
-                <h2 class="font-bold">@d.Name</h2>
-                <p class="text-sm text-gray-500">@d.Location</p>
-                <div class="mt-2">
-                    <span id="latestTemp-@d.Id">--</span> °C
-                </div>
-                <canvas id="chart-@d.Id" height="120"></canvas>
-            </div>
-        }
+<div class="container mx-auto px-4 py-6">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-2xl font-bold">BuzzWatch Dashboard</h1>
+        <div class="text-sm">
+            <span class="mr-4">Total Devices: <span class="font-bold">@Model.TotalDevices</span></span>
+            <span>Online: <span class="font-bold text-green-600">@Model.OnlineDevices</span></span>
+        </div>
     </div>
     
-    @if (!Model.Devices.Any())
+    @if (!Model.HasDevices)
     {
-        <div class="alert alert-info mt-4">
-            No devices available. Please add some devices to start monitoring.
+        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6" role="alert">
+            <p>No devices available. Please add some devices to start monitoring.</p>
+            <p class="mt-2">
+                <a href="#" class="text-blue-700 underline">How to add a device?</a>
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            @foreach (var device in Model.Devices)
+            {
+                var hasData = Model.RecentMeasurements.TryGetValue(device.Id, out var measurements);
+                var latestMeasurement = hasData && measurements.Any() ? measurements.OrderByDescending(m => m.Timestamp).First() : null;
+                var statusClass = device.Status == "Online" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
+                
+                <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex justify-between items-center">
+                            <h2 class="text-lg font-semibold">@device.Name</h2>
+                            <span class="px-2 py-1 rounded-full text-xs font-medium @statusClass">
+                                @device.Status
+                            </span>
+                        </div>
+                        <p class="text-sm text-gray-500">@device.Location</p>
+                    </div>
+                    
+                    <div class="p-4">
+                        @if (latestMeasurement != null)
+                        {
+                            <div class="grid grid-cols-2 gap-4 mb-4">
+                                <div class="bg-blue-50 p-3 rounded-lg">
+                                    <div class="text-sm text-gray-500">Temperature</div>
+                                    <div class="text-xl font-bold">@(latestMeasurement.Temperature?.ToString("F1") ?? "--") °C</div>
+                                </div>
+                                <div class="bg-blue-50 p-3 rounded-lg">
+                                    <div class="text-sm text-gray-500">Humidity</div>
+                                    <div class="text-xl font-bold">@(latestMeasurement.Humidity?.ToString("F1") ?? "--") %</div>
+                                </div>
+                            </div>
+                            
+                            @if (hasData && measurements.Count > 1)
+                            {
+                                <div class="h-32 mt-4">
+                                    <canvas id="chart-@device.Id" height="120"></canvas>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="text-center py-4 text-gray-500">
+                                <p>No data available</p>
+                            </div>
+                        }
+                    </div>
+                    
+                    <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
+                        <a href="@Url.Action("DeviceDetails", new { id = device.Id })" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                            View Details →
+                        </a>
+                    </div>
+                </div>
+            }
+        </div>
+        
+        <!-- Recent Alerts Section -->
+        <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 mb-8">
+            <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h2 class="text-lg font-semibold">Recent Alerts</h2>
+            </div>
+            <div class="divide-y divide-gray-200">
+                @if (Model.RecentAlerts.Any())
+                {
+                    foreach (var alert in Model.RecentAlerts)
+                    {
+                        var alertClass = alert.Severity == "High" ? "bg-red-50 border-red-200" : 
+                                         alert.Severity == "Medium" ? "bg-yellow-50 border-yellow-200" : 
+                                         "bg-blue-50 border-blue-200";
+                        
+                        <div class="p-4 @alertClass">
+                            <div class="flex justify-between">
+                                <span class="font-medium">@alert.Message</span>
+                                <span class="text-sm text-gray-500">@alert.Timestamp.ToString("g")</span>
+                            </div>
+                            <div class="text-sm text-gray-600 mt-1">
+                                Device: @(Model.Devices.FirstOrDefault(d => d.Id == alert.DeviceId)?.Name ?? "Unknown")
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="p-4 text-center text-gray-500">
+                        <p>No recent alerts</p>
+                    </div>
+                }
+            </div>
         </div>
     }
 </div>
@@ -31,5 +118,72 @@
 @section Scripts {
     <script src="~/lib/chart.js/chart.umd.js"></script>
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
-    <script src="~/js/dashboard.js" asp-append-version="true"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            @foreach (var device in Model.Devices)
+            {
+                if (Model.RecentMeasurements.TryGetValue(device.Id, out var deviceMeasurements) && deviceMeasurements.Count > 1)
+                {
+                    var orderedMeasurements = deviceMeasurements.OrderBy(m => m.Timestamp).ToList();
+                    var labels = string.Join(",", orderedMeasurements.Select(m => $"'{m.Timestamp.ToString("HH:mm")}'"));
+                    var temperatures = string.Join(",", orderedMeasurements.Select(m => m.Temperature?.ToString() ?? "null"));
+                    
+                    <text>
+                    new Chart(document.getElementById('chart-@device.Id'), {
+                        type: 'line',
+                        data: {
+                            labels: [@Html.Raw(labels)],
+                            datasets: [{
+                                label: 'Temperature (°C)',
+                                data: [@Html.Raw(temperatures)],
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.4,
+                                fill: true
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false }
+                            },
+                            scales: {
+                                x: { display: false },
+                                y: { 
+                                    beginAtZero: false,
+                                    ticks: { display: false },
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                    </text>
+                }
+            }
+            
+            // SignalR connection for real-time updates
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/hubs/measurements")
+                .withAutomaticReconnect()
+                .build();
+                
+            connection.on("ReceiveMeasurement", (measurement) => {
+                // Update the measurements display
+                const deviceElement = document.getElementById(`device-${measurement.deviceId}`);
+                if (deviceElement) {
+                    const tempElement = deviceElement.querySelector(`#latestTemp-${measurement.deviceId}`);
+                    if (tempElement && measurement.temperature) {
+                        tempElement.textContent = measurement.temperature.toFixed(1);
+                    }
+                    
+                    // Update chart if available
+                    // This would require more complex chart updating logic
+                }
+            });
+            
+            // Start the connection
+            connection.start().catch(err => console.error(err));
+        });
+    </script>
 } 
