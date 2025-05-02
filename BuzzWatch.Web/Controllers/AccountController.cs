@@ -60,6 +60,12 @@ namespace BuzzWatch.Web.Controllers
                                 new Claim(ClaimTypes.Name, model.Email),
                                 new Claim("JwtToken", loginResponse.Token)
                             };
+                            
+                            // Add role claim for admin user
+                            if (model.Email.ToLower() == "admin@local")
+                            {
+                                claims.Add(new Claim(ClaimTypes.Role, "Admin"));
+                            }
 
                             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                             var authProperties = new AuthenticationProperties

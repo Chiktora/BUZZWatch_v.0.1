@@ -1,0 +1,118 @@
+@model List<BuzzWatch.Web.Areas.Admin.Controllers.UserViewModel>
+
+@{
+    ViewData["Title"] = "User Management";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Users</div>
+        <div>
+            <a asp-area="Admin" asp-controller="Users" asp-action="Create" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus"></i> Add New User
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var user in Model)
+                        {
+                            <tr>
+                                <td>@user.Name</td>
+                                <td>@user.Email</td>
+                                <td><span class="badge bg-primary rounded-pill">@user.Role</span></td>
+                                <td>
+                                    @if (user.IsActive)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a asp-area="Admin" asp-controller="Users" asp-action="Edit" asp-route-id="@user.Id" 
+                                           class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a asp-area="Admin" asp-controller="Users" asp-action="Devices" asp-route-id="@user.Id" 
+                                           class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-hdd-rack"></i>
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" data-bs-target="#deleteUserModal" 
+                                                data-user-id="@user.Id" data-user-name="@user.Name">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center p-4">
+                <i class="bi bi-people fs-1 text-secondary"></i>
+                <p class="mt-2">No users found</p>
+                <a asp-area="Admin" asp-controller="Users" asp-action="Create" class="btn btn-primary">Add Your First User</a>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Delete User Modal -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteUserModalLabel">Confirm Deletion</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to delete the user <span id="userName"></span>?</p>
+                <p class="text-danger">This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteUserForm" method="post">
+                    <input type="hidden" id="deleteUserId" name="id" />
+                    <button type="submit" class="btn btn-danger">Delete User</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            $('#deleteUserModal').on('show.bs.modal', function (event) {
+                var button = $(event.relatedTarget);
+                var userId = button.data('user-id');
+                var userName = button.data('user-name');
+                
+                $('#userName').text(userName);
+                $('#deleteUserId').val(userId);
+                $('#deleteUserForm').attr('action', '/Admin/Users/Delete/' + userId);
+            });
+        });
+    </script>
+} 

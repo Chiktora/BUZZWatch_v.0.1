@@ -1,25 +1,63 @@
 ﻿@inject IHttpContextAccessor HttpContextAccessor
+@using System.Security.Claims
 
 <ul class="navbar-nav">
 @{
     bool isAuthenticated = !string.IsNullOrEmpty(HttpContextAccessor.HttpContext?.Session.GetString("JwtToken"));
+    var user = HttpContextAccessor.HttpContext?.User;
+    var isAdmin = user?.IsInRole("Admin") ?? false;
+    var userEmail = user?.Identity?.Name ?? "User";
 }
 
 @if (isAuthenticated)
 {
     <li class="nav-item">
-        <span class="nav-link text-dark">Hello User!</span>
+        <span class="nav-link">
+            <i class="bi bi-person-circle me-1"></i>Hello @userEmail
+        </span>
     </li>
+    @if (isAdmin)
+    {
+        <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <span class="badge bg-warning text-dark">
+                    <i class="bi bi-gear-fill"></i> Admin
+                </span>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="adminDropdown">
+                <li>
+                    <a class="dropdown-item" href="/Admin/Dashboard">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="/Admin/Users">
+                        <i class="bi bi-people"></i> User Management
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="/">
+                        <i class="bi bi-house"></i> Back to Main Site
+                    </a>
+                </li>
+            </ul>
+        </li>
+    }
     <li class="nav-item">
         <form class="form-inline" asp-controller="Account" asp-action="Logout">
-            <button type="submit" class="nav-link btn btn-link text-dark">Logout</button>
+            <button type="submit" class="btn nav-link">
+                <i class="bi bi-box-arrow-right me-1"></i>Logout
+            </button>
         </form>
     </li>
 }
 else
 {
     <li class="nav-item">
-        <a class="nav-link text-dark" asp-controller="Account" asp-action="Login">Login</a>
+        <a class="nav-link" asp-controller="Account" asp-action="Login">
+            <i class="bi bi-box-arrow-in-right me-1"></i>Login
+        </a>
     </li>
 }
 </ul>
