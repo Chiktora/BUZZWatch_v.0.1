@@ -1,0 +1,323 @@
+@model BuzzWatch.Web.Areas.Admin.Controllers.BulkOperationsViewModel
+
+@{
+    ViewData["Title"] = "Bulk Device Operations";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>Bulk Device Operations</div>
+        <div>
+            <a asp-action="Index" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1"></i> Back to List
+            </a>
+            <a asp-action="Dashboard" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-speedometer2 me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @TempData["SuccessMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                @TempData["ErrorMessage"]
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+        
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle me-2"></i>
+            Select devices from the list and choose an operation to perform on all selected devices at once.
+        </div>
+        
+        <form id="bulkOperationsForm" asp-action="BulkOperations" method="post">
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5>Select Devices</h5>
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="selectAll">Select All</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="selectNone">Clear Selection</button>
+                            <div class="btn-group ms-2">
+                                <button type="button" class="btn btn-sm btn-outline-success" id="selectOnline">Select Online</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="selectOffline">Select Offline</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="headerCheckbox">
+                                        </div>
+                                    </th>
+                                    <th>Name</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Battery</th>
+                                    <th>Last Seen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @if (Model.Devices.Any())
+                                {
+                                    @foreach (var device in Model.Devices)
+                                    {
+                                        <tr class="@(device.Status.ToLower() == "online" ? "online-device" : "offline-device")">
+                                            <td>
+                                                <div class="form-check">
+                                                    <input class="form-check-input device-checkbox" type="checkbox" 
+                                                           name="SelectedDeviceIds" value="@device.Id">
+                                                </div>
+                                            </td>
+                                            <td>@device.Name</td>
+                                            <td>@device.Location</td>
+                                            <td>
+                                                @if (device.Status.ToLower() == "online")
+                                                {
+                                                    <span class="badge bg-success">Online</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Offline</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    <div class="progress flex-grow-1 me-2" style="height: 6px; width: 60px;">
+                                                        @{
+                                                            var batteryClass = device.BatteryLevel > 60 ? "bg-success" : 
+                                                                            device.BatteryLevel > 30 ? "bg-warning" : "bg-danger";
+                                                        }
+                                                        <div class="progress-bar @batteryClass" role="progressbar" 
+                                                            style="width: @device.BatteryLevel%;" 
+                                                            aria-valuenow="@device.BatteryLevel" aria-valuemin="0" aria-valuemax="100">
+                                                        </div>
+                                                    </div>
+                                                    <small>@device.BatteryLevel%</small>
+                                                </div>
+                                            </td>
+                                            <td>@device.LastSeen.ToString("g")</td>
+                                        </tr>
+                                    }
+                                }
+                                else
+                                {
+                                    <tr>
+                                        <td colspan="6" class="text-center py-3">
+                                            <p class="text-muted mb-0">No devices available</p>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header">Bulk Operation</div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <label class="form-label">Select Operation</label>
+                                <select class="form-select" id="operationSelect" name="SelectedOperation">
+                                    <option value="none">Select an operation...</option>
+                                    <option value="updateLocation">Update Location</option>
+                                    <option value="delete">Delete Selected Devices</option>
+                                </select>
+                            </div>
+                            
+                            <!-- Operation-specific configuration -->
+                            <div id="operationConfig" class="d-none">
+                                <!-- Update Location -->
+                                <div id="updateLocationConfig" class="operation-config d-none">
+                                    <div class="mb-3">
+                                        <label class="form-label">New Location</label>
+                                        <input type="text" class="form-control" id="newLocation" name="NewLocation" 
+                                               placeholder="Enter new location name">
+                                        <div class="form-text">
+                                            All selected devices will be moved to this location.
+                                        </div>
+                                    </div>
+                                    
+                                    @if (Model.Locations.Any())
+                                    {
+                                        <div class="mb-3">
+                                            <label class="form-label">Existing Locations</label>
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var location in Model.Locations)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary location-btn" 
+                                                            data-location="@location">
+                                                        @location
+                                                    </button>
+                                                }
+                                            </div>
+                                            <div class="form-text">
+                                                Click on an existing location to quickly select it.
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                                
+                                <!-- Delete Confirmation -->
+                                <div id="deleteConfig" class="operation-config d-none">
+                                    <div class="alert alert-danger">
+                                        <i class="bi bi-exclamation-triangle me-2"></i>
+                                        <strong>Warning!</strong> This will permanently delete all selected devices.
+                                        This action cannot be undone.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-3">
+                                <button type="submit" class="btn btn-primary" id="applyBtn" disabled>
+                                    Apply to Selected Devices <span id="selectedCount" class="badge bg-light text-dark ms-1">0</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').alert('close');
+            }, 5000);
+            
+            // Operation selection handlers
+            $('#operationSelect').change(function() {
+                const operation = $(this).val();
+                
+                // Hide all operation configs
+                $('.operation-config').addClass('d-none');
+                
+                if (operation === 'none') {
+                    $('#operationConfig').addClass('d-none');
+                    $('#applyBtn').prop('disabled', true);
+                } else {
+                    $('#operationConfig').removeClass('d-none');
+                    
+                    // Show the specific operation config
+                    $(`#${operation}Config`).removeClass('d-none');
+                    
+                    // Enable apply button if devices are selected
+                    updateApplyButton();
+                }
+            });
+            
+            // Checkbox handlers
+            $('#headerCheckbox').change(function() {
+                $('.device-checkbox').prop('checked', this.checked);
+                updateSelectedCount();
+                updateApplyButton();
+            });
+            
+            $('.device-checkbox').change(function() {
+                updateSelectedCount();
+                updateApplyButton();
+                
+                // Update header checkbox state
+                let allChecked = $('.device-checkbox:checked').length === $('.device-checkbox').length;
+                $('#headerCheckbox').prop('checked', allChecked);
+            });
+            
+            // Selection shortcuts
+            $('#selectAll').click(function() {
+                $('.device-checkbox').prop('checked', true);
+                $('#headerCheckbox').prop('checked', true);
+                updateSelectedCount();
+                updateApplyButton();
+            });
+            
+            $('#selectNone').click(function() {
+                $('.device-checkbox').prop('checked', false);
+                $('#headerCheckbox').prop('checked', false);
+                updateSelectedCount();
+                updateApplyButton();
+            });
+            
+            $('#selectOnline').click(function() {
+                $('.device-checkbox').prop('checked', false);
+                $('.online-device .device-checkbox').prop('checked', true);
+                updateHeaderCheckbox();
+                updateSelectedCount();
+                updateApplyButton();
+            });
+            
+            $('#selectOffline').click(function() {
+                $('.device-checkbox').prop('checked', false);
+                $('.offline-device .device-checkbox').prop('checked', true);
+                updateHeaderCheckbox();
+                updateSelectedCount();
+                updateApplyButton();
+            });
+            
+            // Location buttons
+            $('.location-btn').click(function() {
+                const location = $(this).data('location');
+                $('#newLocation').val(location);
+            });
+            
+            // Update selected count
+            function updateSelectedCount() {
+                const count = $('.device-checkbox:checked').length;
+                $('#selectedCount').text(count);
+            }
+            
+            // Update header checkbox
+            function updateHeaderCheckbox() {
+                const allChecked = $('.device-checkbox:checked').length === $('.device-checkbox').length;
+                $('#headerCheckbox').prop('checked', allChecked);
+            }
+            
+            // Update apply button state
+            function updateApplyButton() {
+                const hasSelection = $('.device-checkbox:checked').length > 0;
+                const hasOperation = $('#operationSelect').val() !== 'none';
+                $('#applyBtn').prop('disabled', !(hasSelection && hasOperation));
+            }
+            
+            // Form submission validation
+            $('#bulkOperationsForm').submit(function(e) {
+                const operation = $('#operationSelect').val();
+                
+                if (operation === 'updateLocation') {
+                    if (!$('#newLocation').val().trim()) {
+                        e.preventDefault();
+                        alert('Please enter a new location.');
+                        $('#newLocation').focus();
+                        return false;
+                    }
+                }
+                
+                if (operation === 'delete') {
+                    if (!confirm('Are you sure you want to delete the selected devices? This action cannot be undone.')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+                
+                return true;
+            });
+        });
+    </script>
+} 

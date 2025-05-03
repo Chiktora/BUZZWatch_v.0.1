@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - BuzzWatch Admin</title>
-    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <style>
@@ -121,10 +121,35 @@
                            asp-area="Admin" asp-controller="Users" asp-action="Index">
                             <i class="bi bi-people"></i> User Management
                         </a>
+                        
+                        <!-- Device Management Dropdown -->
                         <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Devices" ? "active" : "")" 
-                           asp-area="Admin" asp-controller="Devices" asp-action="Index">
-                            <i class="bi bi-hdd-rack"></i> Device Management
+                           data-bs-toggle="collapse" href="#deviceSubmenu" role="button" 
+                           aria-expanded="@(ViewContext.RouteData.Values["Controller"]?.ToString() == "Devices" ? "true" : "false")" 
+                           aria-controls="deviceSubmenu">
+                            <i class="bi bi-hdd-rack"></i> Device Management <i class="bi bi-chevron-down float-end small"></i>
                         </a>
+                        <div class="collapse @(ViewContext.RouteData.Values["Controller"]?.ToString() == "Devices" ? "show" : "")" id="deviceSubmenu">
+                            <div class="ps-4">
+                                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Index" && ViewContext.RouteData.Values["Controller"]?.ToString() == "Devices" ? "active" : "")" 
+                                   asp-area="Admin" asp-controller="Devices" asp-action="Index">
+                                    <i class="bi bi-list"></i> Device List
+                                </a>
+                                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Dashboard" ? "active" : "")" 
+                                   asp-area="Admin" asp-controller="Devices" asp-action="Dashboard">
+                                    <i class="bi bi-speedometer2"></i> Device Dashboard
+                                </a>
+                                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "BulkOperations" ? "active" : "")" 
+                                   asp-area="Admin" asp-controller="Devices" asp-action="BulkOperations">
+                                    <i class="bi bi-tools"></i> Bulk Operations
+                                </a>
+                                <a class="nav-link @(ViewContext.RouteData.Values["Action"]?.ToString() == "Create" ? "active" : "")" 
+                                   asp-area="Admin" asp-controller="Devices" asp-action="Create">
+                                    <i class="bi bi-plus-circle"></i> Add Device
+                                </a>
+                            </div>
+                        </div>
+                        
                         <a class="nav-link @(ViewContext.RouteData.Values["Controller"]?.ToString() == "AlertRules" ? "active" : "")" 
                            asp-area="Admin" asp-controller="AlertRules" asp-action="Index">
                             <i class="bi bi-bell"></i> Alert Rules
@@ -167,8 +192,8 @@
         </div>
     </div>
 
-    <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

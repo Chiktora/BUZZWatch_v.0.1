@@ -24,12 +24,27 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
         }
 
         // GET: /Admin/Devices
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search = null, string? status = null, string? location = null)
         {
             try
             {
+                // Save filter values in ViewBag for form retention
+                ViewBag.CurrentSearch = search;
+                ViewBag.CurrentStatus = status;
+                ViewBag.CurrentLocation = location;
+                
                 // Fetch devices from API
-                var devicesResponse = await FetchDevicesAsync();
+                var devicesResponse = await FetchDevicesAsync(search, status, location);
+                
+                // Get unique locations for filter dropdown
+                var locations = devicesResponse?
+                    .Select(d => d.Location)
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Distinct()
+                    .OrderBy(l => l)
+                    .ToList() ?? new List<string>();
+                
+                ViewBag.Locations = locations;
                 
                 // Map API response to view model
                 var devices = devicesResponse?.Select(d => new DeviceViewModel
@@ -292,17 +307,305 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
         
-        #region API Helper Methods
-        
-        private async Task<List<ContractsDeviceResponse>?> FetchDevicesAsync()
+        // GET: /Admin/Devices/Dashboard
+        public async Task<IActionResult> Dashboard()
         {
             try
             {
-                var response = await _apiClient.GetAsync("/api/v1/admin/devices");
+                // Fetch devices from API
+                var devicesResponse = await FetchDevicesAsync();
+                
+                // Create dashboard statistics
+                var dashboard = new DeviceDashboardViewModel
+                {
+                    TotalDevices = devicesResponse?.Count ?? 0,
+                    OnlineDevices = devicesResponse?.Count(d => d.Status.ToLower() == "online") ?? 0,
+                    LowBatteryDevices = devicesResponse?.Count(d => d.BatteryLevel < 20) ?? 0,
+                    OfflineDevices = devicesResponse?.Count(d => d.Status.ToLower() == "offline") ?? 0,
+                    RecentlyActiveDevices = devicesResponse?
+                        .Where(d => d.LastSeen > DateTimeOffset.UtcNow.AddHours(-24))
+                        .Count() ?? 0,
+                    // Group devices by location
+                    DevicesByLocation = devicesResponse?
+                        .GroupBy(d => d.Location)
+                        .Select(g => new DeviceLocationGroup 
+                        { 
+                            Location = g.Key, 
+                            DeviceCount = g.Count(),
+                            OnlineCount = g.Count(d => d.Status.ToLower() == "online"),
+                            OfflineCount = g.Count(d => d.Status.ToLower() == "offline")
+                        })
+                        .OrderByDescending(g => g.DeviceCount)
+                        .ToList() ?? new List<DeviceLocationGroup>(),
+                    // Most recent devices
+                    RecentDevices = devicesResponse?
+                        .OrderByDescending(d => d.LastSeen)
+                        .Take(5)
+                        .Select(d => new DeviceViewModel
+                        {
+                            Id = d.Id,
+                            Name = d.Name,
+                            Location = d.Location,
+                            Status = d.Status,
+                            BatteryLevel = d.BatteryLevel,
+                            LastSeen = d.LastSeen
+                        })
+                        .ToList() ?? new List<DeviceViewModel>(),
+                    // Low battery devices
+                    LowBatteryDevicesList = devicesResponse?
+                        .Where(d => d.BatteryLevel < 20)
+                        .OrderBy(d => d.BatteryLevel)
+                        .Take(5)
+                        .Select(d => new DeviceViewModel
+                        {
+                            Id = d.Id,
+                            Name = d.Name,
+                            Location = d.Location,
+                            Status = d.Status,
+                            BatteryLevel = d.BatteryLevel,
+                            LastSeen = d.LastSeen
+                        })
+                        .ToList() ?? new List<DeviceViewModel>()
+                };
+                
+                return View(dashboard);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching device dashboard data");
+                
+                // Return empty dashboard as fallback
+                return View(new DeviceDashboardViewModel());
+            }
+        }
+        
+        // GET: /Admin/Devices/BulkOperations
+        public async Task<IActionResult> BulkOperations()
+        {
+            try
+            {
+                // Fetch devices from API
+                var devicesResponse = await FetchDevicesAsync();
+                
+                // Get unique locations for grouping
+                var locations = devicesResponse?
+                    .Select(d => d.Location)
+                    .Where(l => !string.IsNullOrEmpty(l))
+                    .Distinct()
+                    .OrderBy(l => l)
+                    .ToList() ?? new List<string>();
+                
+                // Map API response to view model
+                var devices = devicesResponse?.Select(d => new DeviceViewModel
+                {
+                    Id = d.Id,
+                    Name = d.Name,
+                    Location = d.Location,
+                    Status = d.Status,
+                    BatteryLevel = d.BatteryLevel,
+                    LastSeen = d.LastSeen
+                }).ToList() ?? new List<DeviceViewModel>();
+                
+                // Create bulk operations model
+                var model = new BulkOperationsViewModel
+                {
+                    Devices = devices,
+                    Locations = locations,
+                    SelectedOperation = "none"
+                };
+                
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading bulk operations page");
+                TempData["ErrorMessage"] = "Error loading devices for bulk operations.";
+                return RedirectToAction(nameof(Index));
+            }
+        }
+
+        // POST: /Admin/Devices/BulkOperations
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> BulkOperations(BulkOperationsViewModel model)
+        {
+            if (model.SelectedDeviceIds == null || !model.SelectedDeviceIds.Any())
+            {
+                TempData["ErrorMessage"] = "Please select at least one device.";
+                return RedirectToAction(nameof(BulkOperations));
+            }
+            
+            try
+            {
+                string resultMessage;
+                bool success = true;
+                
+                switch (model.SelectedOperation)
+                {
+                    case "updateLocation":
+                        if (string.IsNullOrEmpty(model.NewLocation))
+                        {
+                            TempData["ErrorMessage"] = "Please enter a new location.";
+                            return RedirectToAction(nameof(BulkOperations));
+                        }
+                        
+                        (success, resultMessage) = await UpdateDeviceLocationsAsync(model.SelectedDeviceIds, model.NewLocation);
+                        break;
+                        
+                    case "delete":
+                        (success, resultMessage) = await DeleteDevicesAsync(model.SelectedDeviceIds);
+                        break;
+                        
+                    default:
+                        resultMessage = "No operation selected.";
+                        success = false;
+                        break;
+                }
+                
+                if (success)
+                {
+                    TempData["SuccessMessage"] = resultMessage;
+                }
+                else
+                {
+                    TempData["ErrorMessage"] = resultMessage;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error performing bulk operation");
+                TempData["ErrorMessage"] = "An error occurred while performing the bulk operation.";
+            }
+            
+            return RedirectToAction(nameof(BulkOperations));
+        }
+
+        private async Task<(bool success, string message)> UpdateDeviceLocationsAsync(List<Guid> deviceIds, string newLocation)
+        {
+            int successCount = 0;
+            int failCount = 0;
+            
+            foreach (var deviceId in deviceIds)
+            {
+                try
+                {
+                    // Get the device from API
+                    var device = await FetchDeviceAsync(deviceId);
+                    
+                    if (device == null)
+                    {
+                        failCount++;
+                        continue;
+                    }
+                    
+                    // Update device
+                    var updateRequest = new ApiUpdateDeviceRequest
+                    {
+                        Name = device.Name,
+                        Location = newLocation
+                    };
+                    
+                    var response = await _apiClient.PutAsJsonAsync($"/api/v1/admin/devices/{deviceId}", updateRequest);
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        successCount++;
+                    }
+                    else
+                    {
+                        failCount++;
+                        _logger.LogWarning("Failed to update device {DeviceId}. Status: {Status}", 
+                            deviceId, response.StatusCode);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error updating device {DeviceId}", deviceId);
+                    failCount++;
+                }
+            }
+            
+            if (failCount == 0)
+            {
+                return (true, $"Successfully updated {successCount} device(s) to location '{newLocation}'.");
+            }
+            else if (successCount > 0)
+            {
+                return (true, $"Partially successful: Updated {successCount} device(s), but failed to update {failCount} device(s).");
+            }
+            else
+            {
+                return (false, "Failed to update any devices.");
+            }
+        }
+
+        private async Task<(bool success, string message)> DeleteDevicesAsync(List<Guid> deviceIds)
+        {
+            int successCount = 0;
+            int failCount = 0;
+            
+            foreach (var deviceId in deviceIds)
+            {
+                try
+                {
+                    var response = await _apiClient.DeleteAsync($"/api/v1/admin/devices/{deviceId}");
+                    
+                    if (response.IsSuccessStatusCode)
+                    {
+                        successCount++;
+                    }
+                    else
+                    {
+                        failCount++;
+                        _logger.LogWarning("Failed to delete device {DeviceId}. Status: {Status}", 
+                            deviceId, response.StatusCode);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error deleting device {DeviceId}", deviceId);
+                    failCount++;
+                }
+            }
+            
+            if (failCount == 0)
+            {
+                return (true, $"Successfully deleted {successCount} device(s).");
+            }
+            else if (successCount > 0)
+            {
+                return (true, $"Partially successful: Deleted {successCount} device(s), but failed to delete {failCount} device(s).");
+            }
+            else
+            {
+                return (false, "Failed to delete any devices.");
+            }
+        }
+        
+        #region API Helper Methods
+        
+        private async Task<List<ContractsDeviceResponse>?> FetchDevicesAsync(string? search = null, string? status = null, string? location = null)
+        {
+            try
+            {
+                // Build query string with filters
+                var queryParams = new List<string>();
+                if (!string.IsNullOrEmpty(search))
+                    queryParams.Add($"search={Uri.EscapeDataString(search)}");
+                if (!string.IsNullOrEmpty(status))
+                    queryParams.Add($"status={Uri.EscapeDataString(status)}");
+                if (!string.IsNullOrEmpty(location))
+                    queryParams.Add($"location={Uri.EscapeDataString(location)}");
+                
+                string queryString = queryParams.Count > 0 ? "?" + string.Join("&", queryParams) : "";
+                
+                // Make the API request with filters
+                var response = await _apiClient.GetAsync($"/api/v1/admin/devices{queryString}");
                 
                 if (response.IsSuccessStatusCode)
                 {
-                    return await response.Content.ReadFromJsonAsync<List<ContractsDeviceResponse>>();
+                    var devices = await response.Content.ReadFromJsonAsync<List<ContractsDeviceResponse>>();
+                    return devices;
                 }
                 
                 _logger.LogWarning("API returned status code {StatusCode} when fetching devices", 
@@ -385,5 +688,34 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
         public DateTimeOffset ExpiresAt { get; set; }
     }
     
+    public class DeviceDashboardViewModel
+    {
+        public int TotalDevices { get; set; }
+        public int OnlineDevices { get; set; }
+        public int OfflineDevices { get; set; }
+        public int LowBatteryDevices { get; set; }
+        public int RecentlyActiveDevices { get; set; }
+        public List<DeviceLocationGroup> DevicesByLocation { get; set; } = new();
+        public List<DeviceViewModel> RecentDevices { get; set; } = new();
+        public List<DeviceViewModel> LowBatteryDevicesList { get; set; } = new();
+    }
+    
+    public class DeviceLocationGroup
+    {
+        public string Location { get; set; } = string.Empty;
+        public int DeviceCount { get; set; }
+        public int OnlineCount { get; set; }
+        public int OfflineCount { get; set; }
+    }
+    
+    public class BulkOperationsViewModel
+    {
+        public List<DeviceViewModel> Devices { get; set; } = new();
+        public List<string> Locations { get; set; } = new();
+        public List<Guid> SelectedDeviceIds { get; set; } = new();
+        public string SelectedOperation { get; set; } = string.Empty;
+        public string NewLocation { get; set; } = string.Empty;
+    }
+    
     #endregion
-} 
+}

@@ -1,0 +1,280 @@
+@model BuzzWatch.Web.Models.UserPreferencesViewModel
+@{
+    ViewData["Title"] = "User Preferences";
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1 class="h2 mb-2">User Preferences</h1>
+            <p class="text-muted">Customize your BuzzWatch experience</p>
+        </div>
+    </div>
+    
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="list-group" id="preference-tabs" role="tablist">
+                <a class="list-group-item list-group-item-action active" id="appearance-tab" data-bs-toggle="list" href="#appearance" role="tab">
+                    <i class="bi bi-palette me-2"></i>Appearance
+                </a>
+                <a class="list-group-item list-group-item-action" id="dashboard-tab" data-bs-toggle="list" href="#dashboard" role="tab">
+                    <i class="bi bi-speedometer2 me-2"></i>Dashboard
+                </a>
+                <a class="list-group-item list-group-item-action" id="notifications-tab" data-bs-toggle="list" href="#notifications" role="tab">
+                    <i class="bi bi-bell me-2"></i>Notifications
+                </a>
+                <a class="list-group-item list-group-item-action" id="data-tab" data-bs-toggle="list" href="#data" role="tab">
+                    <i class="bi bi-graph-up me-2"></i>Data & Analytics
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-9">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form asp-action="Preferences" method="post">
+                        <div class="tab-content">
+                            <!-- Appearance Tab -->
+                            <div class="tab-pane fade show active" id="appearance" role="tabpanel">
+                                <h4>Appearance Settings</h4>
+                                <p class="text-muted mb-4">Customize how BuzzWatch looks</p>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="Theme" class="form-label">Theme</label>
+                                    <div class="row g-3">
+                                        <div class="col-auto">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="Theme" id="themeLight" value="light" checked="@(Model.Theme == "light")">
+                                                <label class="form-check-label" for="themeLight">
+                                                    <i class="bi bi-sun-fill me-1"></i>Light
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="Theme" id="themeDark" value="dark" checked="@(Model.Theme == "dark")">
+                                                <label class="form-check-label" for="themeDark">
+                                                    <i class="bi bi-moon-fill me-1"></i>Dark
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="Theme" id="themeSystem" value="system" checked="@(Model.Theme == "system")">
+                                                <label class="form-check-label" for="themeSystem">
+                                                    <i class="bi bi-laptop me-1"></i>System Default
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Dashboard Tab -->
+                            <div class="tab-pane fade" id="dashboard" role="tabpanel">
+                                <h4>Dashboard Settings</h4>
+                                <p class="text-muted mb-4">Customize your dashboard experience</p>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="DashboardLayout" class="form-label">Layout</label>
+                                    <select asp-for="DashboardLayout" class="form-select">
+                                        <option value="grid">Grid</option>
+                                        <option value="list">List</option>
+                                        <option value="compact">Compact</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="DefaultTimeRange" class="form-label">Default Time Range</label>
+                                    <select asp-for="DefaultTimeRange" class="form-select">
+                                        <option value="6">6 hours</option>
+                                        <option value="24">24 hours</option>
+                                        <option value="72">3 days</option>
+                                        <option value="168">7 days</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input asp-for="EnableRealTimeUpdates" class="form-check-input" type="checkbox">
+                                    <label asp-for="EnableRealTimeUpdates" class="form-check-label">Enable real-time updates</label>
+                                    <div class="form-text">Automatically update dashboard data in real-time</div>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input asp-for="ShowPredictiveInsights" class="form-check-input" type="checkbox">
+                                    <label asp-for="ShowPredictiveInsights" class="form-check-label">Show predictive insights</label>
+                                    <div class="form-text">Display AI-powered insights and predictions on your dashboard</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Notifications Tab -->
+                            <div class="tab-pane fade" id="notifications" role="tabpanel">
+                                <h4>Notification Settings</h4>
+                                <p class="text-muted mb-4">Control how you receive notifications</p>
+                                
+                                <div class="form-check mb-3">
+                                    <input asp-for="EnableNotifications" class="form-check-input" type="checkbox">
+                                    <label asp-for="EnableNotifications" class="form-check-label">Enable in-app notifications</label>
+                                </div>
+                                
+                                <div class="form-check mb-3">
+                                    <input asp-for="EmailNotifications" class="form-check-input" type="checkbox">
+                                    <label asp-for="EmailNotifications" class="form-check-label">Enable email notifications</label>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="NotificationEmail" class="form-label">Notification Email</label>
+                                    <input asp-for="NotificationEmail" class="form-control" type="email">
+                                    <span asp-validation-for="NotificationEmail" class="text-danger"></span>
+                                </div>
+                            </div>
+                            
+                            <!-- Data & Analytics Tab -->
+                            <div class="tab-pane fade" id="data" role="tabpanel">
+                                <h4>Data & Analytics Settings</h4>
+                                <p class="text-muted mb-4">Customize data display preferences</p>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="MetricPreference" class="form-label">Temperature Units</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="MetricPreference" id="tempCelsius" value="celsius" checked="@(Model.MetricPreference == "celsius")">
+                                        <label class="form-check-label" for="tempCelsius">Celsius (°C)</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" name="MetricPreference" id="tempFahrenheit" value="fahrenheit" checked="@(Model.MetricPreference == "fahrenheit")">
+                                        <label class="form-check-label" for="tempFahrenheit">Fahrenheit (°F)</label>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label asp-for="DefaultGraphView" class="form-label">Default Graph Type</label>
+                                    <select asp-for="DefaultGraphView" class="form-select">
+                                        <option value="line">Line Chart</option>
+                                        <option value="bar">Bar Chart</option>
+                                        <option value="area">Area Chart</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 pt-3 border-top d-flex justify-content-between">
+                            <button type="button" class="btn btn-outline-secondary" onclick="resetPreferences()">Reset to Defaults</button>
+                            <button type="submit" class="btn btn-primary">Save Preferences</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Function to reset preferences to defaults
+        function resetPreferences() {
+            if (confirm("Are you sure you want to reset all preferences to default values?")) {
+                // Clear localStorage preferences
+                localStorage.removeItem('buzzwatch-theme');
+                localStorage.removeItem('buzzwatch-preferences');
+                
+                // Reset form values to defaults
+                document.getElementById('themeLight').checked = true;
+                document.getElementById('tempCelsius').checked = true;
+                document.getElementById('DashboardLayout').value = 'grid';
+                document.getElementById('DefaultTimeRange').value = '24';
+                document.getElementById('DefaultGraphView').value = 'line';
+                document.getElementById('EnableRealTimeUpdates').checked = true;
+                document.getElementById('EnableNotifications').checked = true;
+                document.getElementById('ShowPredictiveInsights').checked = true;
+                document.getElementById('EmailNotifications').checked = false;
+                document.getElementById('NotificationEmail').value = '';
+                
+                // Give user feedback
+                alert('Preferences have been reset to defaults.');
+            }
+        }
+        
+        // Update theme when radio buttons are clicked
+        document.querySelectorAll('input[name="Theme"]').forEach(radio => {
+            radio.addEventListener('change', function() {
+                if (this.checked) {
+                    if (this.value === 'light') {
+                        document.documentElement.removeAttribute('data-theme');
+                        localStorage.setItem('buzzwatch-theme', 'light');
+                    } else if (this.value === 'dark') {
+                        document.documentElement.setAttribute('data-theme', 'dark');
+                        localStorage.setItem('buzzwatch-theme', 'dark');
+                    } else if (this.value === 'system') {
+                        localStorage.removeItem('buzzwatch-theme');
+                        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                        if (prefersDark) {
+                            document.documentElement.setAttribute('data-theme', 'dark');
+                        } else {
+                            document.documentElement.removeAttribute('data-theme');
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .list-group-item {
+            border-radius: 0;
+            border-right: none;
+        }
+        
+        .list-group-item:first-child {
+            border-top-left-radius: 0.375rem;
+        }
+        
+        .list-group-item:last-child {
+            border-bottom-left-radius: 0.375rem;
+        }
+        
+        .list-group-item.active {
+            background-color: var(--primary-color);
+            color: var(--secondary-color);
+            border-color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        @@media (max-width: 767.98px) {
+            .list-group {
+                display: flex;
+                flex-direction: row;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                margin-bottom: 1rem;
+            }
+            
+            .list-group-item {
+                flex: 0 0 auto;
+                border-right: 1px solid rgba(0,0,0,.125);
+                border-bottom: none;
+                white-space: nowrap;
+            }
+            
+            .list-group-item:first-child {
+                border-top-right-radius: 0;
+                border-bottom-left-radius: 0;
+            }
+            
+            .list-group-item:last-child {
+                border-top-right-radius: 0.375rem;
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0.375rem;
+            }
+        }
+    </style>
+} 

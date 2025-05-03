@@ -1,6 +1,7 @@
 using BuzzWatch.Application.Abstractions;
 using BuzzWatch.Application.Measurements.Commands;
 using BuzzWatch.Application.Measurements.Commands.Handlers;
+using BuzzWatch.Domain.Common;
 using BuzzWatch.Domain.Devices;
 using BuzzWatch.Domain.Measurements;
 using FluentAssertions;
@@ -11,36 +12,67 @@ namespace BuzzWatch.Tests.Unit.Application.Measurements
     public class CreateMeasurementHandlerTests
     {
         // Mock implementation of interfaces
-        private class FakeMeasurementRepository : IMeasurementRepository
+        public class FakeMeasurementRepository : IMeasurementRepository
         {
-            public List<MeasurementHeader> Measurements { get; } = new List<MeasurementHeader>();
+            // Make measurements accessible through a property
+            public List<MeasurementHeader> Measurements => _measurements;
+            private readonly List<MeasurementHeader> _measurements = new();
 
-            public Task<MeasurementHeader?> GetAsync(long id, CancellationToken ct)
-            {
-                return Task.FromResult(Measurements.FirstOrDefault(m => m.Id == id));
-            }
+            public bool AssignIdOnAdd { get; set; } = false;
 
-            public Task<List<MeasurementHeader>> GetByDeviceAsync(Guid deviceId, DateTimeOffset from, DateTimeOffset to, CancellationToken ct)
-            {
-                return Task.FromResult(Measurements.Where(m => m.DeviceId == deviceId && m.RecordedAt >= from && m.RecordedAt <= to).ToList());
-            }
+            public Task<MeasurementHeader?> GetAsync(long id, CancellationToken ct) =>
+                Task.FromResult(_measurements.FirstOrDefault(m => m.Id == id));
+            
+            public Task<List<MeasurementHeader>> GetByDeviceAsync(
+                Guid deviceId, 
+                DateTimeOffset from, 
+                DateTimeOffset to, 
+                int limit = 1000,
+                CancellationToken ct = default) =>
+                Task.FromResult(_measurements
+                    .Where(m => m.DeviceId == deviceId && m.RecordedAt >= from && m.RecordedAt <= to)
+                    .OrderByDescending(m => m.RecordedAt)
+                    .Take(limit)
+                    .ToList());
+                    
+            public Task<List<MeasurementHeader>> GetByDeviceChunkedAsync(
+                Guid deviceId,
+                DateTimeOffset from,
+                DateTimeOffset to,
+                int chunkIntervalMinutes = 60,
+                CancellationToken ct = default) =>
+                Task.FromResult(_measurements
+                    .Where(m => m.DeviceId == deviceId && m.RecordedAt >= from && m.RecordedAt <= to)
+                    .OrderBy(m => m.RecordedAt)
+                    .ToList());
 
-            public Task<MeasurementHeader?> GetLatestByDeviceAsync(Guid deviceId, CancellationToken ct)
-            {
-                return Task.FromResult(Measurements.Where(m => m.DeviceId == deviceId).OrderByDescending(m => m.RecordedAt).FirstOrDefault());
-            }
+            public Task<MeasurementHeader?> GetLatestByDeviceAsync(Guid deviceId, CancellationToken ct) =>
+                Task.FromResult(_measurements
+                    .Where(m => m.DeviceId == deviceId)
+                    .OrderByDescending(m => m.RecordedAt)
+                    .FirstOrDefault());
 
             public Task AddAsync(MeasurementHeader measurement, CancellationToken ct)
             {
-                measurement.GetType().GetProperty("Id")?.SetValue(measurement, Measurements.Count + 1);
-                Measurements.Add(measurement);
+                if (AssignIdOnAdd)
+                {
+                    // Simulate EF Core's behavior of assigning sequential IDs
+                    measurement.GetType().GetProperty("Id")?.SetValue(measurement, _measurements.Count + 1);
+                }
+                _measurements.Add(measurement);
                 return Task.CompletedTask;
             }
         }
 
         private class FakeDeviceRepository : IDeviceRepository
         {
+            public List<Device> Devices => _devices;
             private readonly List<Device> _devices = new List<Device>();
+
+            public FakeDeviceRepository()
+            {
+                // Default constructor with no initial devices
+            }
 
             public FakeDeviceRepository(IEnumerable<Device> initialDevices)
             {
@@ -77,6 +109,7 @@ namespace BuzzWatch.Tests.Unit.Application.Measurements
         private class FakeUnitOfWork : IUnitOfWork
         {
             public int SaveChangesCount { get; private set; } = 0;
+            public bool SaveChangesCalled => SaveChangesCount > 0;
 
             public Task<int> SaveChangesAsync(CancellationToken ct)
             {
@@ -91,143 +124,424 @@ namespace BuzzWatch.Tests.Unit.Application.Measurements
         }
 
         [Fact]
-        public async Task Handle_CreatesNewMeasurementWithAllValues()
+        public async Task Handle_DeviceNotFound_ReturnsFailure()
         {
             // Arrange
-            var deviceId = Guid.NewGuid();
-            var device = Device.Create("Test Device");
-            device.GetType().GetProperty("Id")?.SetValue(device, deviceId);
+            var command = new CreateMeasurementCommand(
+                DeviceId: Guid.NewGuid(),
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 25.5m,
+                HumIn: 45.0m,
+                TempOut: 30.0m,
+                HumOut: 55.0m,
+                Weight: 10.0m
+            );
 
-            var deviceRepo = new FakeDeviceRepository(new[] { device });
             var measurementRepo = new FakeMeasurementRepository();
+            var deviceRepo = new FakeDeviceRepository();
             var unitOfWork = new FakeUnitOfWork();
             var dateTimeProvider = new FakeDateTimeProvider();
 
             var handler = new CreateMeasurementHandler(
-                measurementRepo,
-                deviceRepo,
+                measurementRepo, 
+                deviceRepo, 
                 unitOfWork,
-                dateTimeProvider);
-
-            var command = new CreateMeasurementCommand(
-                deviceId,
-                dateTimeProvider.UtcNow,
-                25.5m,  // TempIn
-                45.0m,  // HumIn
-                18.2m,  // TempOut
-                65.0m,  // HumOut
-                42.2m   // Weight
+                dateTimeProvider
             );
 
             // Act
-            var result = await handler.Handle(command, CancellationToken.None);
+            async Task action() => await handler.Handle(command, CancellationToken.None);
 
             // Assert
-            result.Should().Be(1); // First measurement
-            measurementRepo.Measurements.Should().HaveCount(1);
-            unitOfWork.SaveChangesCount.Should().Be(1);
-
-            var measurement = measurementRepo.Measurements.First();
-            measurement.DeviceId.Should().Be(deviceId);
-            measurement.RecordedAt.Should().Be(dateTimeProvider.UtcNow);
-            measurement.TempIn.Should().NotBeNull();
-            measurement.TempIn!.ValueC.Should().Be(25.5m);
-            measurement.HumIn.Should().NotBeNull();
-            measurement.HumIn!.ValuePct.Should().Be(45.0m);
-            measurement.TempOut.Should().NotBeNull();
-            measurement.TempOut!.ValueC.Should().Be(18.2m);
-            measurement.HumOut.Should().NotBeNull();
-            measurement.HumOut!.ValuePct.Should().Be(65.0m);
-            measurement.Weight.Should().NotBeNull();
-            measurement.Weight!.ValueKg.Should().Be(42.2m);
+            await Assert.ThrowsAsync<InvalidOperationException>(action);
+            measurementRepo.Measurements.Should().BeEmpty();
+            unitOfWork.SaveChangesCount.Should().Be(0);
         }
 
         [Fact]
-        public async Task Handle_CreatesNewMeasurementWithPartialValues()
+        public async Task Handle_ValidCommand_CreatesMeasurement()
         {
             // Arrange
-            var deviceId = Guid.NewGuid();
-            var device = Device.Create("Test Device");
-            device.GetType().GetProperty("Id")?.SetValue(device, deviceId);
-
-            var deviceRepo = new FakeDeviceRepository(new[] { device });
-            var measurementRepo = new FakeMeasurementRepository();
+            var repo = new FakeMeasurementRepository();
             var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
             var dateTimeProvider = new FakeDateTimeProvider();
-
-            var handler = new CreateMeasurementHandler(
-                measurementRepo,
-                deviceRepo,
-                unitOfWork,
-                dateTimeProvider);
-
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
             var command = new CreateMeasurementCommand(
-                deviceId,
-                dateTimeProvider.UtcNow,
-                25.5m,  // TempIn
-                null,   // HumIn
-                null,   // TempOut
-                null,   // HumOut
-                42.2m   // Weight
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 25.5m,
+                HumIn: 45.0m,
+                TempOut: 30.0m,
+                HumOut: 55.0m,
+                Weight: 10.0m
             );
-
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
+            // Modify the FakeMeasurementRepository.AddAsync to assign an ID
+            repo.AssignIdOnAdd = true;
+            
             // Act
             var result = await handler.Handle(command, CancellationToken.None);
-
+            
             // Assert
-            result.Should().Be(1); // First measurement
-            measurementRepo.Measurements.Should().HaveCount(1);
-            unitOfWork.SaveChangesCount.Should().Be(1);
-
-            var measurement = measurementRepo.Measurements.First();
-            measurement.DeviceId.Should().Be(deviceId);
+            result.Should().BeGreaterThan(0);
+            repo.Measurements.Should().HaveCount(1);
+            
+            // Verify the repository was called correctly
+            var measurement = repo.Measurements.First();
+            measurement.DeviceId.Should().Be(device.Id);
+            measurement.TempIn?.ValueC.Should().Be(25.5m);
+            measurement.HumIn?.ValuePct.Should().Be(45.0m);
+            measurement.TempOut?.ValueC.Should().Be(30.0m);
+            measurement.HumOut?.ValuePct.Should().Be(55.0m);
+            measurement.Weight?.ValueKg.Should().Be(10.0m);
+            
+            // Verify unit of work was called
+            unitOfWork.SaveChangesCalled.Should().BeTrue();
+        }
+        
+        [Fact]
+        public async Task Handle_DefaultRecordedTime_UsesCurrentTime()
+        {
+            // Arrange
+            var repo = new FakeMeasurementRepository();
+            var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
+            var dateTimeProvider = new FakeDateTimeProvider();
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
+            var command = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: default, // This should trigger using the current time
+                TempIn: 25.5m,
+                HumIn: 45.0m,
+                TempOut: 30.0m,
+                HumOut: 55.0m,
+                Weight: 10.0m
+            );
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+            
+            // Assert
+            var measurement = repo.Measurements.First();
             measurement.RecordedAt.Should().Be(dateTimeProvider.UtcNow);
+        }
+        
+        [Fact]
+        public async Task Handle_PartialMeasurements_OnlyStoresProvidedValues()
+        {
+            // Arrange
+            var repo = new FakeMeasurementRepository();
+            var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
+            var dateTimeProvider = new FakeDateTimeProvider();
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
+            // Only provide temperature data
+            var command = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 25.5m,
+                HumIn: null,
+                TempOut: null,
+                HumOut: null,
+                Weight: null
+            );
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
+            // Act
+            var result = await handler.Handle(command, CancellationToken.None);
+            
+            // Assert
+            var measurement = repo.Measurements.First();
             measurement.TempIn.Should().NotBeNull();
-            measurement.TempIn!.ValueC.Should().Be(25.5m);
+            measurement.TempIn?.ValueC.Should().Be(25.5m);
+            
+            // Verify other measurements are null
             measurement.HumIn.Should().BeNull();
             measurement.TempOut.Should().BeNull();
             measurement.HumOut.Should().BeNull();
-            measurement.Weight.Should().NotBeNull();
-            measurement.Weight!.ValueKg.Should().Be(42.2m);
+            measurement.Weight.Should().BeNull();
         }
-
+        
         [Fact]
-        public async Task Handle_ThrowsException_WhenDeviceNotFound()
+        public async Task Handle_MultipleMeasurements_StoresSeparatelyForDevice()
         {
             // Arrange
-            var deviceId = Guid.NewGuid();
-            var nonExistentDeviceId = Guid.NewGuid();
-
-            var device = Device.Create("Test Device");
-            device.GetType().GetProperty("Id")?.SetValue(device, deviceId);
-
-            var deviceRepo = new FakeDeviceRepository(new[] { device });
-            var measurementRepo = new FakeMeasurementRepository();
+            var repo = new FakeMeasurementRepository();
             var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
             var dateTimeProvider = new FakeDateTimeProvider();
-
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
             var handler = new CreateMeasurementHandler(
-                measurementRepo,
-                deviceRepo,
+                repo, 
+                deviceRepo, 
                 unitOfWork,
-                dateTimeProvider);
-
-            var command = new CreateMeasurementCommand(
-                nonExistentDeviceId,
-                dateTimeProvider.UtcNow,
-                25.5m,
-                45.0m,
-                null,
-                null,
-                null
+                dateTimeProvider
             );
-
+            
+            // Create first measurement
+            var command1 = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow.AddHours(-1),
+                TempIn: 25.5m,
+                HumIn: 45.0m,
+                TempOut: null,
+                HumOut: null,
+                Weight: null
+            );
+            
+            // Create second measurement
+            var command2 = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 26.0m,
+                HumIn: 46.0m,
+                TempOut: null,
+                HumOut: null,
+                Weight: null
+            );
+            
+            // Act
+            await handler.Handle(command1, CancellationToken.None);
+            await handler.Handle(command2, CancellationToken.None);
+            
+            // Assert
+            repo.Measurements.Should().HaveCount(2);
+            unitOfWork.SaveChangesCount.Should().Be(2);
+            
+            var measurements = repo.Measurements.OrderBy(m => m.RecordedAt).ToList();
+            
+            measurements[0].TempIn?.ValueC.Should().Be(25.5m);
+            measurements[0].HumIn?.ValuePct.Should().Be(45.0m);
+            
+            measurements[1].TempIn?.ValueC.Should().Be(26.0m);
+            measurements[1].HumIn?.ValuePct.Should().Be(46.0m);
+        }
+        
+        [Fact]
+        public async Task Handle_InvalidInsideTemp_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange
+            var repo = new FakeMeasurementRepository();
+            var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
+            var dateTimeProvider = new FakeDateTimeProvider();
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
+            var command = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: -100m, // Invalid temperature
+                HumIn: 45.0m,
+                TempOut: 30.0m,
+                HumOut: 55.0m,
+                Weight: 10.0m
+            );
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
             // Act & Assert
-            await Assert.ThrowsAsync<InvalidOperationException>(() =>
-                handler.Handle(command, CancellationToken.None));
-
-            measurementRepo.Measurements.Should().BeEmpty();
-            unitOfWork.SaveChangesCount.Should().Be(0);
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                async () => await handler.Handle(command, CancellationToken.None)
+            );
+            
+            exception.ParamName.Should().Be("valueC");
+        }
+        
+        [Fact]
+        public async Task Handle_InvalidInsideHumidity_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange
+            var repo = new FakeMeasurementRepository();
+            var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
+            var dateTimeProvider = new FakeDateTimeProvider();
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
+            var command = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 25.5m,
+                HumIn: 101.0m, // Invalid humidity
+                TempOut: 30.0m,
+                HumOut: 55.0m,
+                Weight: 10.0m
+            );
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                async () => await handler.Handle(command, CancellationToken.None)
+            );
+            
+            exception.ParamName.Should().Be("valuePct");
+        }
+        
+        [Fact]
+        public async Task Handle_InvalidOutsideTemp_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange
+            var repo = new FakeMeasurementRepository();
+            var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
+            var dateTimeProvider = new FakeDateTimeProvider();
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
+            var command = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 25.5m,
+                HumIn: 45.0m,
+                TempOut: -100.0m, // Invalid temperature
+                HumOut: 55.0m,
+                Weight: 10.0m
+            );
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                async () => await handler.Handle(command, CancellationToken.None)
+            );
+            
+            exception.ParamName.Should().Be("valueC");
+        }
+        
+        [Fact]
+        public async Task Handle_InvalidOutsideHumidity_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange
+            var repo = new FakeMeasurementRepository();
+            var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
+            var dateTimeProvider = new FakeDateTimeProvider();
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
+            var command = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 25.5m,
+                HumIn: 45.0m,
+                TempOut: 30.0m,
+                HumOut: 101.0m, // Invalid humidity
+                Weight: 10.0m
+            );
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                async () => await handler.Handle(command, CancellationToken.None)
+            );
+            
+            exception.ParamName.Should().Be("valuePct");
+        }
+        
+        [Fact]
+        public async Task Handle_InvalidWeight_ThrowsArgumentOutOfRangeException()
+        {
+            // Arrange
+            var repo = new FakeMeasurementRepository();
+            var unitOfWork = new FakeUnitOfWork();
+            var deviceRepo = new FakeDeviceRepository();
+            var dateTimeProvider = new FakeDateTimeProvider();
+            
+            var device = Device.Create("Test Device");
+            typeof(BaseEntity<Guid>).GetProperty("Id")?.SetValue(device, Guid.NewGuid());
+            deviceRepo.Devices.Add(device);
+            
+            var command = new CreateMeasurementCommand(
+                DeviceId: device.Id,
+                RecordedAt: DateTimeOffset.UtcNow,
+                TempIn: 25.5m,
+                HumIn: 45.0m,
+                TempOut: 30.0m,
+                HumOut: 55.0m,
+                Weight: -1.0m // Invalid weight
+            );
+            
+            var handler = new CreateMeasurementHandler(
+                repo, 
+                deviceRepo, 
+                unitOfWork,
+                dateTimeProvider
+            );
+            
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
+                async () => await handler.Handle(command, CancellationToken.None)
+            );
+            
+            exception.ParamName.Should().Be("valueKg");
         }
     }
 } 

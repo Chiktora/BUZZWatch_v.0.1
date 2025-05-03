@@ -1,4 +1,5 @@
 using BuzzWatch.Web.Services;
+using BuzzWatch.Web.Hubs;
 
 namespace BuzzWatch.Web
 {
@@ -40,13 +41,19 @@ namespace BuzzWatch.Web
             builder.Services.AddHttpClient<ApiClient>(client =>
             {
                 // Read from appsettings.json
-                var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7116";
+                var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5189";
                 client.BaseAddress = new Uri(apiBaseUrl);
             })
             .AddHttpMessageHandler<JwtDelegatingHandler>();
             
             // Register audit logging service
             builder.Services.AddScoped<IAuditLogService, AuditLogService>();
+            
+            // Register predictive analytics service
+            builder.Services.AddScoped<IPredictiveAnalyticsService, PredictiveAnalyticsService>();
+            
+            // Register SignalR connection
+            builder.Services.AddSignalR();
             
             builder.Services.AddControllersWithViews();
 
@@ -82,6 +89,9 @@ namespace BuzzWatch.Web
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+            
+            // Map SignalR hub
+            app.MapHub<MeasurementNotificationHub>("/hubs/measurements");
             
             app.Run();
         }

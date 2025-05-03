@@ -119,21 +119,32 @@ namespace BuzzWatch.Web.Services
     public class JwtDelegatingHandler : DelegatingHandler
     {
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly ILogger<JwtDelegatingHandler> _logger;
 
-        public JwtDelegatingHandler(IHttpContextAccessor httpContextAccessor)
+        public JwtDelegatingHandler(IHttpContextAccessor httpContextAccessor, ILogger<JwtDelegatingHandler> logger)
         {
             _httpContextAccessor = httpContextAccessor;
+            _logger = logger;
         }
 
         protected override async Task<HttpResponseMessage> SendAsync(
             HttpRequestMessage request,
             CancellationToken cancellationToken)
         {
+            // Log the request URL
+            _logger.LogInformation("Preparing request to {RequestUri}", request.RequestUri);
+            
             // Get token from session
             var token = _httpContextAccessor.HttpContext?.Session.GetString("JwtToken");
+            
             if (!string.IsNullOrEmpty(token))
             {
+                _logger.LogInformation("Found JWT token in session, adding to request");
                 request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            }
+            else
+            {
+                _logger.LogWarning("No JWT token found in session for request to {RequestUri}", request.RequestUri);
             }
 
             return await base.SendAsync(request, cancellationToken);

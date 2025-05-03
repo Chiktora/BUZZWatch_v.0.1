@@ -62,24 +62,49 @@ namespace BuzzWatch.Api.Controllers
         }
 
         [HttpGet("users")]
-        public async Task<ActionResult<List<UserResponse>>> GetUsers()
+        public async Task<ActionResult<List<UserResponse>>> GetUsers(
+            [FromQuery] string? search = null,
+            [FromQuery] string? role = null,
+            [FromQuery] bool? isActive = null)
         {
             try
             {
-                var users = await _userManager.Users.ToListAsync();
+                var usersQuery = _userManager.Users.AsQueryable();
+
+                // Apply status filter
+                if (isActive.HasValue)
+                {
+                    usersQuery = usersQuery.Where(u => u.IsActive == isActive.Value);
+                }
+
+                // Apply search filter
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    search = search.ToLower();
+                    usersQuery = usersQuery.Where(u => 
+                        (u.Email != null && u.Email.ToLower().Contains(search)) || 
+                        (u.UserName != null && u.UserName.ToLower().Contains(search)) || 
+                        (u.Name != null && u.Name.ToLower().Contains(search)));
+                }
+
+                var users = await usersQuery.ToListAsync();
                 var userResponses = new List<UserResponse>();
 
                 foreach (var user in users)
                 {
                     var roles = await _userManager.GetRolesAsync(user);
-                    var role = roles.FirstOrDefault() ?? "User";
+                    var userRole = roles.FirstOrDefault() ?? "User";
+
+                    // Apply role filter
+                    if (!string.IsNullOrWhiteSpace(role) && userRole != role)
+                        continue;
 
                     userResponses.Add(new UserResponse
                     {
                         Id = user.Id,
                         Email = user.Email ?? string.Empty,
                         Name = user.UserName ?? string.Empty,
-                        Role = role,
+                        Role = userRole,
                         IsActive = user.IsActive,
                         CreatedAt = user.CreatedAt,
                         LastLogin = user.LastLoginAt
@@ -198,6 +223,16 @@ namespace BuzzWatch.Api.Controllers
                     return NotFound();
                 }
 
+                // Check if this is the current user trying to modify their own account
+                var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                bool isCurrentUser = (currentUserId == id.ToString());
+                
+                // Don't allow admins to deactivate their own account
+                if (isCurrentUser && !request.IsActive)
+                {
+                    return BadRequest("You cannot deactivate your own account");
+                }
+
                 // Update basic properties
                 user.Name = request.Name;
                 user.IsActive = request.IsActive;
@@ -229,6 +264,12 @@ namespace BuzzWatch.Api.Controllers
 
                 if (currentRole != request.Role)
                 {
+                    // Don't allow admins to change their own role
+                    if (isCurrentUser && currentRole == "Admin")
+                    {
+                        return BadRequest("You cannot change your own admin role");
+                    }
+
                     // Remove from current roles
                     if (currentRole != null)
                     {
@@ -348,6 +389,9 @@ namespace BuzzWatch.Api.Controllers
                     }
                 };
 
+                // Add an artificial delay to simulate async behavior
+                await Task.Delay(1);
+                
                 return Ok(devices);
             }
             catch (Exception ex)
@@ -459,6 +503,21 @@ namespace BuzzWatch.Api.Controllers
                 _logger.LogError(ex, "Error removing device {DeviceId} from user {UserId}", 
                     deviceId, userId);
                 return StatusCode(500, "An error occurred while removing the device from the user");
+            }
+        }
+
+        [HttpGet("roles")]
+        public async Task<ActionResult<List<string>>> GetRoles()
+        {
+            try
+            {
+                var roles = await _roleManager.Roles.Select(r => r.Name).ToListAsync();
+                return Ok(roles.Where(r => r != null).ToList());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving roles");
+                return StatusCode(500, "An error occurred while retrieving roles");
             }
         }
     }

@@ -20,6 +20,14 @@
             <input type="hidden" asp-for="Id" />
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
             
+            @if (ViewBag.SelfEditWarning != null)
+            {
+                <div class="alert alert-warning mb-3">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    @ViewBag.SelfEditWarning
+                </div>
+            }
+            
             <div class="row mb-3">
                 <div class="col-md-6">
                     <label asp-for="Name" class="form-label">Full Name</label>
@@ -35,21 +43,56 @@
             
             <div class="mb-3">
                 <label asp-for="Role" class="form-label">Role</label>
-                <select asp-for="Role" class="form-select">
-                    <option value="">-- Select a role --</option>
-                    <option value="Admin">Administrator</option>
-                    <option value="User">Standard User</option>
-                    <option value="ReadOnly">Read-Only User</option>
-                </select>
+                @if (ViewBag.SelfEditWarning != null)
+                {
+                    <select asp-for="Role" class="form-select" disabled>
+                        <option value="">-- Select a role --</option>
+                        @foreach (var role in ViewBag.Roles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                    <input type="hidden" name="Role" value="@Model.Role" />
+                    <div class="form-text text-warning">You cannot change your own role.</div>
+                }
+                else
+                {
+                    <select asp-for="Role" class="form-select">
+                        <option value="">-- Select a role --</option>
+                        @foreach (var role in ViewBag.Roles)
+                        {
+                            <option value="@role">@role</option>
+                        }
+                    </select>
+                }
                 <span asp-validation-for="Role" class="text-danger"></span>
+                <div class="form-text">
+                    <ul class="mb-0 ps-3 small">
+                        <li><strong>Admin:</strong> Full access to all features and management options</li>
+                        <li><strong>Moderator:</strong> Can manage devices and users but with limited admin access</li>
+                        <li><strong>User:</strong> Access to assigned devices and basic controls</li>
+                    </ul>
+                </div>
             </div>
             
             <div class="mb-3">
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" asp-for="IsActive" id="isActiveSwitch">
+                    @if (ViewBag.SelfEditWarning != null)
+                    {
+                        <input class="form-check-input" type="checkbox" asp-for="IsActive" id="isActiveSwitch" disabled>
+                        <input type="hidden" name="IsActive" value="true" />
+                    }
+                    else
+                    {
+                        <input class="form-check-input" type="checkbox" asp-for="IsActive" id="isActiveSwitch">
+                    }
                     <label class="form-check-label" for="isActiveSwitch">Account Active</label>
                 </div>
                 <div class="form-text">Inactive accounts cannot log in to the system.</div>
+                @if (ViewBag.SelfEditWarning != null)
+                {
+                    <div class="form-text text-warning">You cannot deactivate your own account.</div>
+                }
             </div>
             
             <hr class="my-4" />

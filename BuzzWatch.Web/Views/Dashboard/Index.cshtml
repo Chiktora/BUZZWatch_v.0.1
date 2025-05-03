@@ -3,187 +3,711 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="container mx-auto px-4 py-6">
-    <div class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold">BuzzWatch Dashboard</h1>
-        <div class="text-sm">
-            <span class="mr-4">Total Devices: <span class="font-bold">@Model.TotalDevices</span></span>
-            <span>Online: <span class="font-bold text-green-600">@Model.OnlineDevices</span></span>
+<div class="container-fluid px-4 py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">BuzzWatch Dashboard</h1>
+            <p class="text-muted">Monitor and manage your beehives in real-time</p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <div class="badge bg-primary p-2">
+                <i class="bi bi-hdd-stack me-1"></i> 
+                Devices: <span class="fw-bold">@Model.TotalDevices</span>
+            </div>
+            <div class="badge bg-success p-2">
+                <i class="bi bi-wifi me-1"></i> 
+                Online: <span class="fw-bold">@Model.OnlineDevices</span>
+            </div>
+            <div class="badge bg-warning text-dark p-2">
+                <i class="bi bi-bell me-1"></i> 
+                Alerts: <span class="fw-bold">@Model.ActiveAlertCount</span>
+            </div>
         </div>
     </div>
     
     @if (!Model.HasDevices)
     {
-        <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6" role="alert">
-            <p>No devices available. Please add some devices to start monitoring.</p>
-            <p class="mt-2">
-                <a href="#" class="text-blue-700 underline">How to add a device?</a>
-            </p>
+        <div class="alert alert-info" role="alert">
+            <div class="d-flex">
+                <div class="me-3">
+                    <i class="bi bi-info-circle-fill fs-3"></i>
+                </div>
+                <div>
+                    <h4>No devices available</h4>
+                    <p>Please add some devices to start monitoring your beehives.</p>
+                    <a href="#" class="btn btn-sm btn-primary mt-2">
+                        <i class="bi bi-plus-circle me-1"></i> Add a device
+                    </a>
+                </div>
+            </div>
         </div>
     }
     else
     {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            @foreach (var device in Model.Devices)
-            {
-                var hasData = Model.RecentMeasurements.TryGetValue(device.Id, out var measurements);
-                var latestMeasurement = hasData && measurements.Any() ? measurements.OrderByDescending(m => m.Timestamp).First() : null;
-                var statusClass = device.Status == "Online" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800";
-                
-                <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-                    <div class="p-4 border-b border-gray-200">
-                        <div class="flex justify-between items-center">
-                            <h2 class="text-lg font-semibold">@device.Name</h2>
-                            <span class="px-2 py-1 rounded-full text-xs font-medium @statusClass">
-                                @device.Status
-                            </span>
-                        </div>
-                        <p class="text-sm text-gray-500">@device.Location</p>
+        <div class="row mb-3">
+            <div class="col">
+                <div class="btn-toolbar">
+                    <div class="btn-group btn-group-sm me-2">
+                        <button type="button" class="btn btn-outline-primary active" id="layout-grid">
+                            <i class="bi bi-grid"></i>
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="layout-list">
+                            <i class="bi bi-list"></i>
+                        </button>
                     </div>
-                    
-                    <div class="p-4">
-                        @if (latestMeasurement != null)
-                        {
-                            <div class="grid grid-cols-2 gap-4 mb-4">
-                                <div class="bg-blue-50 p-3 rounded-lg">
-                                    <div class="text-sm text-gray-500">Temperature</div>
-                                    <div class="text-xl font-bold">@(latestMeasurement.Temperature?.ToString("F1") ?? "--") °C</div>
-                                </div>
-                                <div class="bg-blue-50 p-3 rounded-lg">
-                                    <div class="text-sm text-gray-500">Humidity</div>
-                                    <div class="text-xl font-bold">@(latestMeasurement.Humidity?.ToString("F1") ?? "--") %</div>
+                    <div class="dropdown me-2">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="timeRangeDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-calendar3 me-1"></i> Last 24 hours
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="timeRangeDropdown">
+                            <li><a class="dropdown-item" href="#" data-range="6">Last 6 hours</a></li>
+                            <li><a class="dropdown-item active" href="#" data-range="24">Last 24 hours</a></li>
+                            <li><a class="dropdown-item" href="#" data-range="72">Last 3 days</a></li>
+                            <li><a class="dropdown-item" href="#" data-range="168">Last 7 days</a></li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="customize-dashboard">
+                        <i class="bi bi-sliders me-1"></i> Customize
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Widgets Container -->
+        <div class="dashboard-widgets" id="widgets-container">
+            <!-- Device Summary Widget -->
+            @if (Model.Widgets.Any(w => w.Id == "device-summary" && w.IsEnabled))
+            {
+                <div class="dashboard-widget" data-widget-id="device-summary">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Device Overview</h5>
+                            <div class="widget-controls">
+                                <button class="btn btn-sm btn-link text-muted widget-refresh">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-link text-muted dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#">View Full Screen</a></li>
+                                        <li><a class="dropdown-item" href="#">Hide Widget</a></li>
+                                    </ul>
                                 </div>
                             </div>
-                            
-                            @if (hasData && measurements.Count > 1)
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="row g-0">
+                                @foreach (var device in Model.GetTopDevices())
+                                {
+                                    var hasData = Model.RecentMeasurements.TryGetValue(device.Id, out var measurements);
+                                    var latestMeasurement = hasData && measurements.Any() ? measurements.OrderByDescending(m => m.Timestamp).First() : null;
+                                    var statusClass = device.Status == "Online" ? "bg-success" : "bg-secondary";
+                                    
+                                    <div class="col-md-6 col-lg-4">
+                                        <div class="border-bottom border-end p-3 h-100">
+                                            <div class="d-flex justify-content-between mb-2">
+                                                <h6 class="fw-bold mb-0">@device.Name</h6>
+                                                <span class="badge @statusClass">@device.Status</span>
+                                            </div>
+                                            <div class="small text-muted mb-3">@device.Location</div>
+                                            
+                                            @if (latestMeasurement != null)
+                                            {
+                                                <div class="row g-2 text-center">
+                                                    <div class="col-4">
+                                                        <div class="bg-light rounded p-2">
+                                                            <div id="temp-@device.Id" class="fs-5 fw-bold">@(latestMeasurement.Temperature?.ToString("F1") ?? "--")</div>
+                                                            <div class="small text-muted">°C</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="bg-light rounded p-2">
+                                                            <div id="hum-@device.Id" class="fs-5 fw-bold">@(latestMeasurement.Humidity?.ToString("F1") ?? "--")</div>
+                                                            <div class="small text-muted">%</div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="bg-light rounded p-2">
+                                                            <div id="weight-@device.Id" class="fs-5 fw-bold">@(latestMeasurement.Weight?.ToString("F1") ?? "--")</div>
+                                                            <div class="small text-muted">kg</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div class="mt-3 d-flex justify-content-end">
+                                                    <a href="@Url.Action("DeviceDetails", new { id = device.Id })" class="btn btn-sm btn-outline-primary">Details</a>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-center py-4 text-muted">
+                                                    <i class="bi bi-exclamation-circle d-block mb-2 fs-4"></i>
+                                                    <p class="mb-0">No data available</p>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="#" class="text-decoration-none small">View all devices</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            
+            <!-- Alerts Widget -->
+            @if (Model.Widgets.Any(w => w.Id == "alerts" && w.IsEnabled))
+            {
+                <div class="dashboard-widget" data-widget-id="alerts">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Recent Alerts</h5>
+                            <div class="widget-controls">
+                                <button class="btn btn-sm btn-link text-muted widget-refresh">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-link text-muted dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#">View Full Screen</a></li>
+                                        <li><a class="dropdown-item" href="#">Hide Widget</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            @if (Model.RecentAlerts.Any())
                             {
-                                <div class="h-32 mt-4">
-                                    <canvas id="chart-@device.Id" height="120"></canvas>
+                                <div class="list-group list-group-flush">
+                                    @foreach (var alert in Model.RecentAlerts.Take(5))
+                                    {
+                                        var severityClass = alert.Severity switch
+                                        {
+                                            "High" => "border-danger",
+                                            "Medium" => "border-warning",
+                                            "Low" => "border-info",
+                                            _ => "border-secondary"
+                                        };
+                                        
+                                        var device = Model.Devices.FirstOrDefault(d => d.Id == alert.DeviceId);
+                                        
+                                        <div class="list-group-item list-group-item-action border-start-0 border-end-0 border-top-0 border-bottom border-3 @severityClass">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <h6 class="mb-1">@alert.Message</h6>
+                                                <span class="badge bg-secondary">@alert.Status</span>
+                                            </div>
+                                            <div class="d-flex justify-content-between">
+                                                <div class="text-muted small">
+                                                    <i class="bi bi-hdd me-1"></i> @(device?.Name ?? "Unknown device")
+                                                </div>
+                                                <div class="text-muted small">@alert.Timestamp.ToString("g")</div>
+                                            </div>
+                                        </div>
+                                    }
                                 </div>
                             }
-                        }
-                        else
-                        {
-                            <div class="text-center py-4 text-gray-500">
-                                <p>No data available</p>
-                            </div>
-                        }
+                            else
+                            {
+                                <div class="text-center py-4 text-muted">
+                                    <i class="bi bi-shield-check d-block mb-2 fs-3"></i>
+                                    <p class="mb-0">No alerts at this time</p>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="@Url.Action("Index", "Alerts")" class="text-decoration-none small">View all alerts</a>
+                        </div>
                     </div>
-                    
-                    <div class="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                        <a href="@Url.Action("DeviceDetails", new { id = device.Id })" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            View Details →
-                        </a>
+                </div>
+            }
+            
+            <!-- Predictive Insights Widget -->
+            @if (Model.Widgets.Any(w => w.Id == "analytics" && w.IsEnabled))
+            {
+                <div class="dashboard-widget" data-widget-id="analytics">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Hive Health Predictions</h5>
+                            <div class="widget-controls">
+                                <button class="btn btn-sm btn-link text-muted widget-refresh">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-link text-muted dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#">View Full Screen</a></li>
+                                        <li><a class="dropdown-item" href="#">Hide Widget</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            @if (Model.PredictiveInsights.Any())
+                            {
+                                <div class="list-group list-group-flush">
+                                    @foreach (var insight in Model.PredictiveInsights.Take(5))
+                                    {
+                                        var insightClass = insight.Severity switch
+                                        {
+                                            "alert" => "border-danger",
+                                            "warning" => "border-warning",
+                                            _ => "border-info"
+                                        };
+                                        
+                                        var icon = insight.InsightType switch
+                                        {
+                                            "temperature-trend" => "bi-thermometer-half",
+                                            "humidity-levels" => "bi-moisture",
+                                            "weight-trend" => "bi-clipboard-data",
+                                            _ => "bi-graph-up"
+                                        };
+                                        
+                                        <div class="list-group-item list-group-item-action border-start-0 border-end-0 border-top-0 border-bottom border-3 @insightClass">
+                                            <div class="d-flex">
+                                                <div class="me-3 fs-4">
+                                                    <i class="bi @icon"></i>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <div class="d-flex justify-content-between">
+                                                        <h6 class="mb-1">@insight.DeviceName</h6>
+                                                        <small class="text-muted">@(insight.Confidence.HasValue ? $"{insight.Confidence.Value:P0} confidence" : "")</small>
+                                                    </div>
+                                                    <p class="mb-1">@insight.Message</p>
+                                                    <small class="text-muted">@insight.CreatedAt.ToString("g")</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-4 text-muted">
+                                    <i class="bi bi-lightbulb d-block mb-2 fs-3"></i>
+                                    <p class="mb-0">No predictive insights available</p>
+                                    <small>Add more devices or collect more data</small>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="@Url.Action("Index", "Analytics")" class="text-decoration-none small">View detailed analytics</a>
+                        </div>
+                    </div>
+                </div>
+            }
+            
+            <!-- Weather Widget -->
+            @if (Model.Widgets.Any(w => w.Id == "weather" && w.IsEnabled))
+            {
+                <div class="dashboard-widget" data-widget-id="weather">
+                    <div class="card shadow-sm">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="card-title mb-0">Weather Conditions</h5>
+                            <div class="widget-controls">
+                                <button class="btn btn-sm btn-link text-muted widget-refresh">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                </button>
+                                <div class="dropdown d-inline-block">
+                                    <button class="btn btn-sm btn-link text-muted dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                        <i class="bi bi-three-dots-vertical"></i>
+                                    </button>
+                                    <ul class="dropdown-menu dropdown-menu-end">
+                                        <li><a class="dropdown-item" href="#">View Full Screen</a></li>
+                                        <li><a class="dropdown-item" href="#">Hide Widget</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="text-center p-3 bg-light">
+                                <div id="weather-container">
+                                    <div class="d-flex justify-content-center align-items-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0 mt-2">Loading weather data...</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-end">
+                            <a href="#" class="text-decoration-none small">View forecast</a>
+                        </div>
                     </div>
                 </div>
             }
         </div>
-        
-        <!-- Recent Alerts Section -->
-        <div class="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 mb-8">
-            <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
-                <h2 class="text-lg font-semibold">Recent Alerts</h2>
-            </div>
-            <div class="divide-y divide-gray-200">
-                @if (Model.RecentAlerts.Any())
-                {
-                    foreach (var alert in Model.RecentAlerts)
-                    {
-                        var alertClass = alert.Severity == "High" ? "bg-red-50 border-red-200" : 
-                                         alert.Severity == "Medium" ? "bg-yellow-50 border-yellow-200" : 
-                                         "bg-blue-50 border-blue-200";
-                        
-                        <div class="p-4 @alertClass">
-                            <div class="flex justify-between">
-                                <span class="font-medium">@alert.Message</span>
-                                <span class="text-sm text-gray-500">@alert.Timestamp.ToString("g")</span>
-                            </div>
-                            <div class="text-sm text-gray-600 mt-1">
-                                Device: @(Model.Devices.FirstOrDefault(d => d.Id == alert.DeviceId)?.Name ?? "Unknown")
-                            </div>
+    }
+
+    <!-- Widget Customization Modal -->
+    <div class="modal fade" id="customizeDashboardModal" tabindex="-1" aria-labelledby="customizeDashboardModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customizeDashboardModalLabel">Customize Dashboard</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Dashboard Layout</label>
+                        <div class="btn-group w-100" role="group">
+                            <input type="radio" class="btn-check" name="layoutOption" id="layoutGrid" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary" for="layoutGrid">Grid</label>
+                            
+                            <input type="radio" class="btn-check" name="layoutOption" id="layoutList" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="layoutList">List</label>
+                            
+                            <input type="radio" class="btn-check" name="layoutOption" id="layoutCompact" autocomplete="off">
+                            <label class="btn btn-outline-primary" for="layoutCompact">Compact</label>
                         </div>
-                    }
-                }
-                else
-                {
-                    <div class="p-4 text-center text-gray-500">
-                        <p>No recent alerts</p>
                     </div>
-                }
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Widgets</label>
+                        <div class="list-group">
+                            @foreach (var widget in Model.Widgets)
+                            {
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="widget-@widget.Id" @(widget.IsEnabled ? "checked" : "")>
+                                            <label class="form-check-label" for="widget-@widget.Id">@widget.Title</label>
+                                        </div>
+                                    </div>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-secondary widget-up" data-widget-id="@widget.Id">
+                                            <i class="bi bi-arrow-up"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-secondary widget-down" data-widget-id="@widget.Id">
+                                            <i class="bi bi-arrow-down"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Display Preferences</label>
+                        <div class="mb-2">
+                            <select class="form-select" id="metricPreference">
+                                <option value="celsius" selected>Temperature in Celsius (°C)</option>
+                                <option value="fahrenheit">Temperature in Fahrenheit (°F)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <select class="form-select" id="defaultTimeRange">
+                                <option value="6">Default view: 6 hours</option>
+                                <option value="24" selected>Default view: 24 hours</option>
+                                <option value="72">Default view: 3 days</option>
+                                <option value="168">Default view: 7 days</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveDashboardSettings">Save changes</button>
+                </div>
             </div>
         </div>
-    }
+    </div>
 </div>
+
+@section Styles {
+    <style>
+        .dashboard-widgets {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-gap: 1rem;
+        }
+        
+        .dashboard-widget {
+            transition: all 0.3s ease;
+        }
+        
+        .dashboard-widget[data-widget-id="device-summary"] {
+            grid-column: span 8;
+        }
+        
+        .dashboard-widget[data-widget-id="alerts"] {
+            grid-column: span 4;
+        }
+        
+        .dashboard-widget[data-widget-id="analytics"] {
+            grid-column: span 8;
+        }
+        
+        .dashboard-widget[data-widget-id="weather"] {
+            grid-column: span 4;
+        }
+        
+        @@media (max-width: 992px) {
+            .dashboard-widget[data-widget-id="device-summary"],
+            .dashboard-widget[data-widget-id="alerts"],
+            .dashboard-widget[data-widget-id="analytics"],
+            .dashboard-widget[data-widget-id="weather"] {
+                grid-column: span 12;
+            }
+        }
+        
+        .dashboard-layout-list .dashboard-widget {
+            grid-column: span 12 !important;
+        }
+    </style>
+}
 
 @section Scripts {
     <script src="~/lib/chart.js/chart.umd.js"></script>
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            @foreach (var device in Model.Devices)
-            {
-                if (Model.RecentMeasurements.TryGetValue(device.Id, out var deviceMeasurements) && deviceMeasurements.Count > 1)
-                {
-                    var orderedMeasurements = deviceMeasurements.OrderBy(m => m.Timestamp).ToList();
-                    var labels = string.Join(",", orderedMeasurements.Select(m => $"'{m.Timestamp.ToString("HH:mm")}'"));
-                    var temperatures = string.Join(",", orderedMeasurements.Select(m => m.Temperature?.ToString() ?? "null"));
-                    
-                    <text>
-                    new Chart(document.getElementById('chart-@device.Id'), {
-                        type: 'line',
-                        data: {
-                            labels: [@Html.Raw(labels)],
-                            datasets: [{
-                                label: 'Temperature (°C)',
-                                data: [@Html.Raw(temperatures)],
-                                borderColor: 'rgb(59, 130, 246)',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                tension: 0.4,
-                                fill: true
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false }
-                            },
-                            scales: {
-                                x: { display: false },
-                                y: { 
-                                    beginAtZero: false,
-                                    ticks: { display: false },
-                                    grid: { display: false }
-                                }
-                            }
-                        }
-                    });
-                    </text>
-                }
+            // ---- Widget Customization ----
+            const customizeBtn = document.getElementById('customize-dashboard');
+            const customizeModal = new bootstrap.Modal(document.getElementById('customizeDashboardModal'));
+            
+            if (customizeBtn) {
+                customizeBtn.addEventListener('click', function() {
+                    customizeModal.show();
+                });
             }
             
-            // SignalR connection for real-time updates
+            const saveDashboardSettings = document.getElementById('saveDashboardSettings');
+            if (saveDashboardSettings) {
+                saveDashboardSettings.addEventListener('click', function() {
+                    // Collect widget settings
+                    const widgetSettings = [];
+                    const widgetCheckboxes = document.querySelectorAll('[id^="widget-"]');
+                    
+                    widgetCheckboxes.forEach(checkbox => {
+                        const widgetId = checkbox.id.replace('widget-', '');
+                        widgetSettings.push({
+                            id: widgetId,
+                            isEnabled: checkbox.checked,
+                            order: parseInt(checkbox.getAttribute('data-order') || '0')
+                        });
+                    });
+                    
+                    // Collect display preferences
+                    const metricPreference = document.getElementById('metricPreference').value;
+                    const defaultTimeRange = document.getElementById('defaultTimeRange').value;
+                    const layoutType = document.querySelector('input[name="layoutOption"]:checked').id.replace('layout', '').toLowerCase();
+                    
+                    // Save to localStorage
+                    if (window.saveBuzzWatchPreferences) {
+                        window.saveBuzzWatchPreferences({
+                            enabledWidgets: widgetSettings.filter(w => w.isEnabled).map(w => w.id),
+                            dashboardLayout: layoutType,
+                            metricPreference: metricPreference,
+                            defaultTimeRange: parseInt(defaultTimeRange)
+                        });
+                    }
+                    
+                    // Save settings via AJAX
+                    fetch('@Url.Action("SaveUserPreferences", "Dashboard")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            enabledWidgets: widgetSettings.filter(w => w.isEnabled).map(w => w.id),
+                            dashboardLayout: layoutType,
+                            metricPreference: metricPreference,
+                            defaultTimeRange: parseInt(defaultTimeRange),
+                            theme: 'light' // Hardcoded for now
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            customizeModal.hide();
+                            // Refresh dashboard
+                            location.reload();
+                        } else {
+                            alert('Failed to save settings');
+                        }
+                    })
+                    .catch(error => console.error('Error saving settings:', error));
+                });
+            }
+            
+            // ---- Layout Controls ----
+            const layoutGrid = document.getElementById('layout-grid');
+            const layoutList = document.getElementById('layout-list');
+            const widgetsContainer = document.getElementById('widgets-container');
+            
+            if (layoutGrid && layoutList && widgetsContainer) {
+                layoutGrid.addEventListener('click', function() {
+                    layoutGrid.classList.add('active');
+                    layoutList.classList.remove('active');
+                    widgetsContainer.classList.remove('dashboard-layout-list');
+                    // Save user preference
+                    if (window.saveBuzzWatchPreferences) {
+                        window.saveBuzzWatchPreferences({ dashboardLayout: 'grid' });
+                    }
+                });
+                
+                layoutList.addEventListener('click', function() {
+                    layoutList.classList.add('active');
+                    layoutGrid.classList.remove('active');
+                    widgetsContainer.classList.add('dashboard-layout-list');
+                    // Save user preference
+                    if (window.saveBuzzWatchPreferences) {
+                        window.saveBuzzWatchPreferences({ dashboardLayout: 'list' });
+                    }
+                });
+            }
+            
+            // ---- Weather Widget ----
+            const loadWeatherData = async () => {
+                const weatherContainer = document.getElementById('weather-container');
+                if (!weatherContainer) return;
+                
+                try {
+                    // Get user's location (simplified demo version)
+                    const locations = Array.from(new Set(@Html.Raw(Json.Serialize(Model.GetActiveLocations())))).filter(l => l);
+                    const location = locations.length > 0 ? locations[0] : "Unknown";
+                    
+                    // For demo purposes, we'll use sample data
+                    // In a real app, you would make an API call to a weather service
+                    const weatherHtml = `
+                        <div class="text-center">
+                            <div class="fs-1 mb-2">
+                                <i class="bi bi-cloud-sun text-warning"></i>
+                            </div>
+                            <div class="fs-2 fw-bold">21°C</div>
+                            <div class="fs-5">Partly Cloudy</div>
+                            <div class="text-muted mb-3">${location}</div>
+                            
+                            <div class="row g-0 border-top pt-3 mt-2">
+                                <div class="col-4 border-end">
+                                    <div class="text-muted small">Humidity</div>
+                                    <div class="fw-bold">62%</div>
+                                </div>
+                                <div class="col-4 border-end">
+                                    <div class="text-muted small">Wind</div>
+                                    <div class="fw-bold">8 km/h</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Pressure</div>
+                                    <div class="fw-bold">1013 hPa</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    weatherContainer.innerHTML = weatherHtml;
+                } catch (error) {
+                    console.error('Error loading weather data:', error);
+                    weatherContainer.innerHTML = `
+                        <div class="text-center py-3">
+                            <i class="bi bi-exclamation-triangle text-warning fs-2 mb-2"></i>
+                            <p class="mb-0">Unable to load weather data</p>
+                        </div>
+                    `;
+                }
+            };
+            
+            // Load weather data on page load
+            loadWeatherData();
+            
+            // Widget refresh handlers
+            const refreshButtons = document.querySelectorAll('.widget-refresh');
+            refreshButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const widgetId = this.closest('.dashboard-widget').getAttribute('data-widget-id');
+                    if (widgetId === 'weather') {
+                        loadWeatherData();
+                    }
+                    // Add other widget refresh handlers as needed
+                });
+            });
+            
+            // ---- SignalR connection for real-time updates ----
             const connection = new signalR.HubConnectionBuilder()
                 .withUrl("/hubs/measurements")
                 .withAutomaticReconnect()
                 .build();
                 
             connection.on("ReceiveMeasurement", (measurement) => {
-                // Update the measurements display
-                const deviceElement = document.getElementById(`device-${measurement.deviceId}`);
-                if (deviceElement) {
-                    const tempElement = deviceElement.querySelector(`#latestTemp-${measurement.deviceId}`);
-                    if (tempElement && measurement.temperature) {
-                        tempElement.textContent = measurement.temperature.toFixed(1);
-                    }
-                    
-                    // Update chart if available
-                    // This would require more complex chart updating logic
-                }
+                updateDeviceReadings(measurement);
+            });
+            
+            connection.on("ReceiveAlert", (alert) => {
+                // Display a notification for new alerts
+                const alertToast = document.createElement('div');
+                alertToast.className = 'toast position-fixed bottom-0 end-0 m-3';
+                alertToast.setAttribute('role', 'alert');
+                alertToast.setAttribute('aria-live', 'assertive');
+                alertToast.setAttribute('aria-atomic', 'true');
+                alertToast.innerHTML = `
+                    <div class="toast-header bg-${alert.severity === 'High' ? 'danger' : alert.severity === 'Medium' ? 'warning' : 'info'} text-white">
+                        <i class="bi bi-bell me-2"></i>
+                        <strong class="me-auto">New Alert</strong>
+                        <small>Just now</small>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                    </div>
+                    <div class="toast-body">
+                        ${alert.message}
+                    </div>
+                `;
+                
+                document.body.appendChild(alertToast);
+                const toast = new bootstrap.Toast(alertToast);
+                toast.show();
+                
+                // Refresh alerts widget
+                // In a real app, you'd make an API call to get updated alerts
             });
             
             // Start the connection
-            connection.start().catch(err => console.error(err));
+            connection.start()
+                .then(() => {
+                    console.log('SignalR connected');
+                    // Join device groups for all devices on the dashboard
+                    @foreach (var device in Model.Devices)
+                    {
+                        <text>
+                        connection.invoke("JoinDeviceGroup", "@device.Id").catch(err => console.error(err));
+                        </text>
+                    }
+                })
+                .catch(err => console.error(err));
+                
+            function updateDeviceReadings(measurement) {
+                const deviceId = measurement.deviceId;
+                
+                // Update temperature, humidity, and weight displays
+                const tempElement = document.getElementById(`temp-${deviceId}`);
+                const humElement = document.getElementById(`hum-${deviceId}`);
+                const weightElement = document.getElementById(`weight-${deviceId}`);
+                
+                if (tempElement && measurement.temperature !== null && measurement.temperature !== undefined) {
+                    tempElement.textContent = measurement.temperature.toFixed(1);
+                    tempElement.classList.add('text-success');
+                    setTimeout(() => tempElement.classList.remove('text-success'), 2000);
+                }
+                
+                if (humElement && measurement.humidity !== null && measurement.humidity !== undefined) {
+                    humElement.textContent = measurement.humidity.toFixed(1);
+                    humElement.classList.add('text-success');
+                    setTimeout(() => humElement.classList.remove('text-success'), 2000);
+                }
+                
+                if (weightElement && measurement.weight !== null && measurement.weight !== undefined) {
+                    weightElement.textContent = measurement.weight.toFixed(1);
+                    weightElement.classList.add('text-success');
+                    setTimeout(() => weightElement.classList.remove('text-success'), 2000);
+                }
+            }
         });
     </script>
 } 

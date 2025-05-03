@@ -9,13 +9,13 @@ namespace BuzzWatch.Api.Authentication
 {
     public class ApiKeyAuthenticationOptions : AuthenticationSchemeOptions
     {
-        public TimeProvider? TimeProvider { get; set; }
+        public new TimeProvider? TimeProvider { get; set; }
     }
 
     public class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAuthenticationOptions>
     {
         private readonly ApplicationDbContext _db;
-        public const string Scheme = "ApiKey";
+        public new const string Scheme = "ApiKey";
 
         public ApiKeyAuthenticationHandler(
             IOptionsMonitor<ApiKeyAuthenticationOptions> options, 

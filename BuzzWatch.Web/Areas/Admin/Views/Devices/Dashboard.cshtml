@@ -1,0 +1,325 @@
+@model BuzzWatch.Web.Areas.Admin.Controllers.DeviceDashboardViewModel
+
+@{
+    ViewData["Title"] = "Device Dashboard";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3">Device Dashboard</h1>
+    <div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-list me-1"></i> Device List
+        </a>
+        <a asp-action="Create" class="btn btn-primary ms-2">
+            <i class="bi bi-plus-circle me-1"></i> Add New Device
+        </a>
+    </div>
+</div>
+
+<!-- Stats Cards Row -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50">Total Devices</h6>
+                        <h2 class="display-6 mb-0">@Model.TotalDevices</h2>
+                    </div>
+                    <div class="fs-1">
+                        <i class="bi bi-hdd-rack"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a asp-action="Index" class="text-white-50 stretched-link">View Details</a>
+                <div class="text-white-50"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50">Online</h6>
+                        <h2 class="display-6 mb-0">@Model.OnlineDevices</h2>
+                    </div>
+                    <div class="fs-1">
+                        <i class="bi bi-wifi"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a asp-action="Index" asp-route-status="online" class="text-white-50 stretched-link">View Online Devices</a>
+                <div class="text-white-50"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-secondary text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50">Offline</h6>
+                        <h2 class="display-6 mb-0">@Model.OfflineDevices</h2>
+                    </div>
+                    <div class="fs-1">
+                        <i class="bi bi-wifi-off"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a asp-action="Index" asp-route-status="offline" class="text-white-50 stretched-link">View Offline Devices</a>
+                <div class="text-white-50"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card bg-danger text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="text-white-50">Low Battery</h6>
+                        <h2 class="display-6 mb-0">@Model.LowBatteryDevices</h2>
+                    </div>
+                    <div class="fs-1">
+                        <i class="bi bi-battery-half"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <span class="text-white-50 stretched-link">Need Attention</span>
+                <div class="text-white-50"><i class="bi bi-chevron-right"></i></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts and Lists Row -->
+<div class="row">
+    <div class="col-md-8">
+        <!-- Device Locations Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Devices by Location</span>
+                <a asp-action="Index" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+            <div class="card-body">
+                @if (Model.DevicesByLocation.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Location</th>
+                                    <th>Devices</th>
+                                    <th>Online</th>
+                                    <th>Offline</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var location in Model.DevicesByLocation)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a asp-action="Index" asp-route-location="@location.Location">
+                                                @location.Location
+                                            </a>
+                                        </td>
+                                        <td>@location.DeviceCount</td>
+                                        <td>@location.OnlineCount</td>
+                                        <td>@location.OfflineCount</td>
+                                        <td>
+                                            <div class="progress" style="height: 6px;">
+                                                @{ 
+                                                    var onlinePercent = location.DeviceCount > 0 
+                                                        ? (location.OnlineCount * 100 / location.DeviceCount) 
+                                                        : 0;
+                                                }
+                                                <div class="progress-bar bg-success" role="progressbar" 
+                                                     style="width: @onlinePercent%;" aria-valuenow="@onlinePercent" 
+                                                     aria-valuemin="0" aria-valuemax="100">
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center p-4">
+                        <p class="text-muted">No device locations available</p>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <!-- Recent Activity Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Recently Active Devices</span>
+                <span class="badge bg-primary">@Model.RecentlyActiveDevices in last 24h</span>
+            </div>
+            <div class="card-body">
+                @if (Model.RecentDevices.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Device</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th>Battery</th>
+                                    <th>Last Seen</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var device in Model.RecentDevices)
+                                {
+                                    <tr>
+                                        <td>
+                                            <a asp-action="Details" asp-route-id="@device.Id">
+                                                @device.Name
+                                            </a>
+                                        </td>
+                                        <td>@device.Location</td>
+                                        <td>
+                                            @if (device.Status.ToLower() == "online")
+                                            {
+                                                <span class="badge bg-success">Online</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary">Offline</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                                                    @{
+                                                        var batteryClass = device.BatteryLevel > 60 ? "bg-success" : 
+                                                                          device.BatteryLevel > 30 ? "bg-warning" : "bg-danger";
+                                                    }
+                                                    <div class="progress-bar @batteryClass" role="progressbar" 
+                                                         style="width: @device.BatteryLevel%;" 
+                                                         aria-valuenow="@device.BatteryLevel" aria-valuemin="0" aria-valuemax="100">
+                                                    </div>
+                                                </div>
+                                                <small>@device.BatteryLevel%</small>
+                                            </div>
+                                        </td>
+                                        <td>@device.LastSeen.ToString("g")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center p-4">
+                        <p class="text-muted">No recent device activity</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <!-- Low Battery Devices Card -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning">
+                <i class="bi bi-battery-half me-1"></i> Low Battery Devices
+            </div>
+            <div class="card-body">
+                @if (Model.LowBatteryDevicesList.Any())
+                {
+                    <div class="list-group">
+                        @foreach (var device in Model.LowBatteryDevicesList)
+                        {
+                            <a asp-action="Details" asp-route-id="@device.Id" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">@device.Name</h6>
+                                    <small>@device.BatteryLevel%</small>
+                                </div>
+                                <div class="progress my-2" style="height: 4px;">
+                                    <div class="progress-bar bg-danger" role="progressbar" 
+                                         style="width: @device.BatteryLevel%;" 
+                                         aria-valuenow="@device.BatteryLevel" aria-valuemin="0" aria-valuemax="100">
+                                    </div>
+                                </div>
+                                <small class="text-muted">@device.Location - Last seen @device.LastSeen.ToString("g")</small>
+                            </a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center p-4">
+                        <i class="bi bi-battery-full text-success fs-1"></i>
+                        <p class="text-muted mt-2">All devices have sufficient battery</p>
+                    </div>
+                }
+            </div>
+        </div>
+        
+        <!-- Actions Card -->
+        <div class="card">
+            <div class="card-header">Quick Actions</div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a asp-action="Create" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 align-items-center">
+                            <i class="bi bi-plus-circle me-3 fs-4"></i>
+                            <div>
+                                <h6 class="mb-1">Add New Device</h6>
+                                <small class="text-muted">Register a new device in the system</small>
+                            </div>
+                        </div>
+                    </a>
+                    <a asp-action="Index" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 align-items-center">
+                            <i class="bi bi-list-ul me-3 fs-4"></i>
+                            <div>
+                                <h6 class="mb-1">Manage Devices</h6>
+                                <small class="text-muted">View and edit all devices</small>
+                            </div>
+                        </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action" id="refreshDashboard">
+                        <div class="d-flex w-100 align-items-center">
+                            <i class="bi bi-arrow-clockwise me-3 fs-4"></i>
+                            <div>
+                                <h6 class="mb-1">Refresh Dashboard</h6>
+                                <small class="text-muted">Update with latest data</small>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(function() {
+            // Refresh button functionality
+            $('#refreshDashboard').click(function(e) {
+                e.preventDefault();
+                window.location.reload();
+            });
+            
+            // Auto-refresh every 5 minutes
+            setTimeout(function() {
+                window.location.reload();
+            }, 300000); // 5 minutes in milliseconds
+        });
+    </script>
+} 
