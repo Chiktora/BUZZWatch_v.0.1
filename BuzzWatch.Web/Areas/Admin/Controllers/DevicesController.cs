@@ -81,6 +81,9 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
                     return NotFound();
                 }
                 
+                // Get API key from the API if available (we're simulating for now)
+                string apiKey = await GetDeviceApiKeyAsync(id);
+                
                 // Map API response to view model
                 var viewModel = new DeviceDetailsViewModel
                 {
@@ -90,7 +93,7 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
                     Status = device.Status,
                     BatteryLevel = device.BatteryLevel,
                     LastSeen = device.LastSeen,
-                    ApiKey = "••••••••" // We wouldn't actually expose the API key in the view model
+                    ApiKey = apiKey // Now we pass the actual key (but it will be masked in the UI)
                 };
 
                 return View(viewModel);
@@ -270,7 +273,7 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
             try
             {
                 // Send request to API
-                var response = await _apiClient.PostAsJsonAsync($"/api/v1/admin/devices/{id}/api-key", new {});
+                var response = await _apiClient.PostAsJsonAsync($"/api/v1/devices/{id}/regenerate-key", new {});
                 
                 if (response.IsSuccessStatusCode)
                 {
@@ -640,6 +643,34 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
             {
                 _logger.LogError(ex, "Exception while fetching device {DeviceId} from API", id);
                 return null;
+            }
+        }
+        
+        private async Task<string> GetDeviceApiKeyAsync(Guid id)
+        {
+            try
+            {
+                var response = await _apiClient.GetAsync($"/api/v1/devices/{id}/api-key");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var apiKeyResponse = await response.Content.ReadFromJsonAsync<ApiKeyResponse>();
+                    
+                    if (apiKeyResponse != null)
+                    {
+                        return apiKeyResponse.Key;
+                    }
+                }
+                
+                _logger.LogWarning("API returned status code {StatusCode} when fetching API key for device {DeviceId}", 
+                    response.StatusCode, id);
+                
+                return string.Empty;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception while fetching API key for device {DeviceId}", id);
+                return string.Empty;
             }
         }
         

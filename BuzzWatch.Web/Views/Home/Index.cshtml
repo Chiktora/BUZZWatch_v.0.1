@@ -64,8 +64,17 @@ else
         <div class="col-12">
             <div class="card">
                 <div class="card-body p-4">
-                    <h2 class="card-title">Welcome back, @User.Identity?.Name?.Split('@').FirstOrDefault()!</h2>
-                    <p class="text-muted">Here's an overview of your beehive monitoring system.</p>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="card-title">Welcome back, @User.Identity?.Name?.Split('@').FirstOrDefault()!</h2>
+                            <p class="text-muted">Here's an overview of your beehive monitoring system.</p>
+                        </div>
+                        <div>
+                            <a asp-controller="Dashboard" asp-action="Index" class="btn btn-primary">
+                                <i class="bi bi-speedometer2 me-1"></i> Go to Dashboard
+                            </a>
+                        </div>
+                    </div>
                     
                     @if (!Model.HasDevices)
                     {
@@ -82,127 +91,287 @@ else
     
     @if (Model.HasDevices)
     {
+        <!-- Top Stats Row -->
         <div class="row g-4 mb-4">
-            <div class="col-md-4">
-                <div class="card h-100">
+            <div class="col-md-3">
+                <div class="card h-100 border-primary border-start border-4">
                     <div class="card-body">
-                        <h5 class="card-title">Devices</h5>
-                        <div class="d-flex align-items-center mt-3">
-                            <div class="flex-shrink-0">
-                                <div class="display-4 text-primary">@Model.TotalDevices</div>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3">
+                                <i class="bi bi-hdd-stack fs-4 text-primary"></i>
                             </div>
-                            <div class="flex-grow-1 ms-4">
-                                <div class="mb-1">
-                                    <i class="bi bi-circle-fill text-success me-1 small"></i> 
-                                    <span>@Model.OnlineDevices Online</span>
-                                </div>
-                                <div>
-                                    <i class="bi bi-circle-fill text-secondary me-1 small"></i> 
-                                    <span>@Model.OfflineDevices Offline</span>
-                                </div>
-                                <div class="progress mt-2" style="height: 8px;">
-                                    <div class="progress-bar bg-success" 
-                                         role="progressbar" 
-                                         style="width: @Model.DeviceOnlinePercentage%;" 
-                                         aria-valuenow="@Model.DeviceOnlinePercentage" 
-                                         aria-valuemin="0" 
-                                         aria-valuemax="100"></div>
-                                </div>
+                            <div>
+                                <h6 class="text-muted mb-1">Total Devices</h6>
+                                <h3 class="mb-0">@Model.TotalDevices</h3>
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer bg-transparent border-top-0">
-                        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-sm btn-primary w-100">
-                            <i class="bi bi-speedometer2 me-1"></i> Go to Dashboard
-                        </a>
-                    </div>
                 </div>
             </div>
-            
-            <div class="col-md-4">
-                <div class="card h-100">
+            <div class="col-md-3">
+                <div class="card h-100 border-success border-start border-4">
                     <div class="card-body">
-                        <h5 class="card-title">Alerts</h5>
-                        <div class="d-flex align-items-center mt-3">
-                            <div class="flex-shrink-0">
-                                <div class="display-4 text-primary">@Model.ActiveAlerts</div>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-success bg-opacity-10 p-3 me-3">
+                                <i class="bi bi-wifi fs-4 text-success"></i>
                             </div>
-                            <div class="flex-grow-1 ms-4">
-                                <div class="mb-1">
-                                    <i class="bi bi-exclamation-triangle-fill text-warning me-1 small"></i> 
-                                    <span>Active Alerts</span>
-                                </div>
-                                <div>
-                                    <i class="bi bi-check-circle-fill text-success me-1 small"></i> 
-                                    <span>@Model.ResolvedAlerts Resolved</span>
-                                </div>
-                                <div class="small text-muted mt-1">
-                                    @Model.TotalAlerts total alerts
-                                </div>
+                            <div>
+                                <h6 class="text-muted mb-1">Online Devices</h6>
+                                <h3 class="mb-0">@Model.OnlineDevices</h3>
                             </div>
                         </div>
                     </div>
-                    <div class="card-footer bg-transparent border-top-0">
-                        <a href="#" class="btn btn-sm btn-outline-primary w-100">
-                            <i class="bi bi-bell me-1"></i> View Alerts
-                        </a>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-warning border-start border-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3">
+                                <i class="bi bi-exclamation-triangle fs-4 text-warning"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted mb-1">Active Alerts</h6>
+                                <h3 class="mb-0">@Model.ActiveAlerts</h3>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="col-md-4">
-                <div class="card h-100">
+            <div class="col-md-3">
+                <div class="card h-100 border-info border-start border-4">
                     <div class="card-body">
-                        <h5 class="card-title">Quick Actions</h5>
-                        <div class="list-group list-group-flush mt-3">
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <i class="bi bi-plus-circle me-2 text-success"></i> Add New Device
-                            </a>
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <i class="bi bi-sliders me-2 text-primary"></i> Configure Alert Rules
-                            </a>
-                            <a href="#" class="list-group-item list-group-item-action">
-                                <i class="bi bi-download me-2 text-secondary"></i> Export Data
-                            </a>
-                            <a asp-controller="Notifications" asp-action="Index" class="list-group-item list-group-item-action">
-                                <i class="bi bi-bell me-2 text-warning"></i> Notifications Center
-                            </a>
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3">
+                                <i class="bi bi-check-circle fs-4 text-info"></i>
+                            </div>
+                            <div>
+                                <h6 class="text-muted mb-1">Resolved Alerts</h6>
+                                <h3 class="mb-0">@Model.ResolvedAlerts</h3>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
+        <!-- Main Content Section - Columns -->
+        <div class="row g-4 mb-4">
+            <!-- Device Status Column -->
+            <div class="col-md-6">
+                <div class="card h-100">
                     <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">Recent Activity</h5>
-                        <a href="#" class="btn btn-sm btn-outline-secondary">View All</a>
+                        <h5 class="mb-0"><i class="bi bi-hdd-stack me-2"></i>Device Status</h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" id="deviceDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="deviceDropdown">
+                                <li><a class="dropdown-item" asp-controller="Dashboard" asp-action="Index">View All Devices</a></li>
+                                <li><a class="dropdown-item" href="#">Add New Device</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#">Export Device List</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Device Name</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Last Update</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @if (Model.Devices.Any())
+                                    {
+                                        @foreach (var device in Model.Devices.Take(5)) // Limit to 5 devices max
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <a asp-controller="Dashboard" asp-action="Details" asp-route-id="@device.Id" 
+                                                       class="text-decoration-none text-dark fw-medium">@device.Name</a>
+                                                </td>
+                                                <td>@device.Location</td>
+                                                <td>
+                                                    <span class="badge bg-@(device.Status == "Online" ? "success" : "secondary")">
+                                                        @device.Status
+                                                    </span>
+                                                </td>
+                                                <td>@device.LastSeenDisplay</td>
+                                            </tr>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <tr>
+                                            <td colspan="4" class="text-center py-3">No devices found.</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent text-center">
+                        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-sm btn-outline-primary">View All Devices</a>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Alerts Column -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="bi bi-bell me-2"></i>Recent Alerts</h5>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" id="alertsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="alertsDropdown">
+                                <li><a class="dropdown-item" href="#">View All Alerts</a></li>
+                                <li><a class="dropdown-item" href="#">Configure Alert Rules</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="#">Mark All as Read</a></li>
+                            </ul>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <div class="list-group list-group-flush">
-                            <!-- Placeholder for recent activity -->
-                            <div class="list-group-item py-3">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">Temperature Alert - Hive #3</h6>
-                                    <small class="text-muted">3 hours ago</small>
+                            @if (Model.RecentAlerts.Any())
+                            {
+                                @foreach (var alert in Model.RecentAlerts)
+                                {
+                                    <div class="list-group-item py-3 border-start border-@alert.SeverityClass border-4">
+                                        <div class="d-flex w-100 justify-content-between">
+                                            <h6 class="mb-1 text-dark fw-medium">@alert.Title</h6>
+                                            <small class="text-muted">@alert.TimeAgo</small>
+                                        </div>
+                                        <p class="mb-1">@alert.Description</p>
+                                        <small class="text-muted">Device: @alert.DeviceName</small>
+                                        <div class="d-flex justify-content-end mt-2">
+                                            <button class="btn btn-sm btn-outline-secondary me-2">Dismiss</button>
+                                            <a href="#" class="btn btn-sm btn-primary">View Details</a>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="list-group-item py-3 text-center">
+                                    <p class="mb-0">No alerts found.</p>
                                 </div>
-                                <p class="mb-1">Temperature exceeded 35°C. Check ventilation.</p>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent text-center">
+                        <a href="#" class="btn btn-sm btn-outline-primary">View All Alerts</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Bottom Row - Quick Actions and Weather -->
+        <div class="row g-4 mb-4">
+            <!-- Quick Actions Card -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Quick Actions</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <a href="#" class="card text-decoration-none h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-plus-circle text-success fs-3 me-3"></i>
+                                            <div>
+                                                <h6 class="mb-1">Add New Device</h6>
+                                                <p class="mb-0 text-muted small">Register a new monitoring device</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
                             </div>
-                            <div class="list-group-item py-3">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">Weight Change - Hive #1</h6>
-                                    <small class="text-muted">Yesterday</small>
-                                </div>
-                                <p class="mb-1">Weight increased by 1.2kg in the last 24 hours.</p>
+                            <div class="col-md-6">
+                                <a href="#" class="card text-decoration-none h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-sliders text-primary fs-3 me-3"></i>
+                                            <div>
+                                                <h6 class="mb-1">Configure Alerts</h6>
+                                                <p class="mb-0 text-muted small">Set up notification rules</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
                             </div>
-                            <div class="list-group-item py-3">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">System Update</h6>
-                                    <small class="text-muted">2 days ago</small>
+                            <div class="col-md-6">
+                                <a href="#" class="card text-decoration-none h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-download text-info fs-3 me-3"></i>
+                                            <div>
+                                                <h6 class="mb-1">Export Data</h6>
+                                                <p class="mb-0 text-muted small">Download measurements as CSV/Excel</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                            <div class="col-md-6">
+                                <a asp-controller="Analytics" asp-action="Index" class="card text-decoration-none h-100">
+                                    <div class="card-body p-3">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-graph-up text-warning fs-3 me-3"></i>
+                                            <div>
+                                                <h6 class="mb-1">Analytics</h6>
+                                                <p class="mb-0 text-muted small">View insights and trends</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Weather Card -->
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="bi bi-cloud me-2"></i>Weather Forecast</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-6 text-center">
+                                <i class="bi bi-sun display-1 text-warning"></i>
+                                <h2 class="display-5 mt-2 mb-0">24°C</h2>
+                                <p class="lead">Sunny</p>
+                                <p class="mb-0">Humidity: 45%</p>
+                                <p>Wind: 10 km/h</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>3-Day Forecast</h6>
+                                <div class="d-flex justify-content-between align-items-center mt-3 mb-2">
+                                    <div>Tomorrow</div>
+                                    <div><i class="bi bi-cloud-sun me-2"></i>22°C</div>
                                 </div>
-                                <p class="mb-1">BuzzWatch firmware updated to version 1.2.5</p>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div>Wednesday</div>
+                                    <div><i class="bi bi-cloud-drizzle me-2"></i>19°C</div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>Thursday</div>
+                                    <div><i class="bi bi-sun me-2"></i>23°C</div>
+                                </div>
+                                <div class="alert alert-info mt-3 mb-0 py-2 small">
+                                    <i class="bi bi-info-circle me-2"></i>Tomorrow may be ideal for hive inspection.
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -210,4 +379,17 @@ else
             </div>
         </div>
     }
+}
+
+@section Scripts {
+    <script>
+        // Add any JavaScript for the home page here
+        document.addEventListener('DOMContentLoaded', function() {
+            // Example: Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
 }

@@ -47,6 +47,24 @@ namespace BuzzWatch.Web.Controllers
                     overview.TotalAlerts = alertStats.Total;
                 }
                 
+                // Get the device list for the device status table
+                var devices = await _apiClient.GetAsync<List<DeviceListItemDto>>("/api/v1/devices");
+                if (devices != null)
+                {
+                    overview.Devices = devices;
+                }
+                
+                // Get recent alerts
+                var recentAlerts = await _apiClient.GetAsync<List<AlertListItemDto>>("/api/v1/alerts/recent?count=3");
+                if (recentAlerts != null)
+                {
+                    overview.RecentAlerts = recentAlerts;
+                }
+                
+                // Get weather data if we had a real weather API integration
+                // This would be done here, but for now we'll use the static data in the view
+                // overview.WeatherData = await _weatherService.GetCurrentWeatherAsync();
+                
                 return View(overview);
             }
             catch (Exception ex)

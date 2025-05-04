@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark:bg-gray-900" id="html-element">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -466,6 +466,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             const themeToggle = document.getElementById('theme-toggle');
             const themeIcon = document.getElementById('theme-icon');
+            const htmlElement = document.documentElement;
             
             // Check for saved theme preference or use preferred color scheme
             const savedTheme = localStorage.getItem('buzzwatch-theme');
@@ -474,6 +475,7 @@
             // Set initial theme
             if (savedTheme === 'dark' || (!savedTheme && prefersDark)) {
                 document.documentElement.setAttribute('data-theme', 'dark');
+                htmlElement.classList.add('dark');
                 themeIcon.classList.replace('bi-sun-fill', 'bi-moon-fill');
             }
             
@@ -484,13 +486,18 @@
                     
                     if (currentTheme === 'dark') {
                         document.documentElement.removeAttribute('data-theme');
+                        htmlElement.classList.remove('dark');
                         localStorage.setItem('buzzwatch-theme', 'light');
                         themeIcon.classList.replace('bi-moon-fill', 'bi-sun-fill');
                     } else {
                         document.documentElement.setAttribute('data-theme', 'dark');
+                        htmlElement.classList.add('dark');
                         localStorage.setItem('buzzwatch-theme', 'dark');
                         themeIcon.classList.replace('bi-sun-fill', 'bi-moon-fill');
                     }
+                    
+                    // Dispatch event for components that need to know about the change
+                    document.dispatchEvent(new CustomEvent('colorSchemeChange'));
                 });
             }
             

@@ -2,6 +2,7 @@ using BuzzWatch.Api.Authentication;
 using BuzzWatch.Api.Authorization;
 using BuzzWatch.Api.Hubs;
 using BuzzWatch.Api.Services;
+using BuzzWatch.Api.Swagger;
 using BuzzWatch.Application;
 using BuzzWatch.Application.Abstractions;
 using BuzzWatch.Application.Alerts.Commands;
@@ -32,7 +33,12 @@ builder.Services
     .AddApplication();
 
 // Add controllers for AdminController
-builder.Services.AddControllers();
+builder.Services.AddControllers().AddJsonOptions(options => {
+    // Use appropriate JSON naming policy
+    options.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
+    // Avoid ignoring null values so they appear in Swagger docs
+    options.JsonSerializerOptions.DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never;
+});
 
 // Add SignalR
 builder.Services.AddSignalR();
@@ -42,35 +48,34 @@ builder.Services.AddScoped<IMeasurementNotificationService, SignalRMeasurementNo
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
+
+// Add extremely minimal Swagger configuration
 builder.Services.AddSwaggerGen(options => {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo {
         Title = "BuzzWatch API",
-        Version = "v1"
+        Version = "v1",
     });
     
-    // Add JWT Authentication to Swagger
-    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token",
-        Name = "Authorization",
-        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
-        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
+    // Minimal unique schema IDs
+    options.CustomSchemaIds(type => {
+        if (type.FullName == null) 
+            return type.Name;
+            
+        return type.Namespace + "." + type.Name;
     });
     
-    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement {
-        {
-            new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
-                Reference = new Microsoft.OpenApi.Models.OpenApiReference {
-                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                },
-                Scheme = "oauth2",
-                Name = "Bearer",
-                In = Microsoft.OpenApi.Models.ParameterLocation.Header
-            },
-            new List<string>()
-        }
+    // Resolve conflicting actions
+    options.ResolveConflictingActions(apiDescriptions => {
+        var resolver = new ConflictingActionsResolver();
+        return resolver.Resolve(apiDescriptions);
     });
+});
+
+// Enable more detailed Swagger exceptions
+builder.Services.AddSwaggerGen().AddLogging(logging => {
+    logging.AddConsole();
+    logging.AddDebug();
+    logging.SetMinimumLevel(LogLevel.Debug);
 });
 
 // Add HttpContext accessor for authorization
@@ -107,13 +112,50 @@ var app = builder.Build();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
+    // Simple exception logging middleware for Swagger
+    app.Use(async (context, next) =>
+    {
+        try
+        {
+            await next();
+        }
+        catch (Exception ex)
+        {
+            if (context.Request.Path.StartsWithSegments("/swagger"))
+            {
+                Console.WriteLine($"Swagger error: {ex.GetType().Name}: {ex.Message}");
+                Console.WriteLine($"Stack trace: {ex.StackTrace}");
+                
+                context.Response.StatusCode = 500;
+                context.Response.ContentType = "text/plain";
+                await context.Response.WriteAsync($"Swagger error: {ex.Message}");
+                return;
+            }
+            throw;
+        }
+    });
+
+    // Configure basic Swagger
     app.UseSwagger();
     app.UseSwaggerUI();
     
     // Seed identity data in development
     using var scope = app.Services.CreateScope();
     var services = scope.ServiceProvider;
-    services.SeedIdentityAsync().GetAwaiter().GetResult();
+    
+    try 
+    {
+        // Seed identity data (users and roles)
+        await services.SeedIdentityAsync();
+        
+        // Seed device data
+        await services.SeedDevicesAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database");
+    }
 }
 
 app.UseHttpsRedirection();
@@ -189,18 +231,6 @@ v1.MapPost("/devices/{deviceId:guid}/measurements",
 .WithName("CreateMeasurement")
 .Produces(201)
 .ProducesProblem(400);
-
-// GET /api/v1/devices
-v1.MapGet("/devices", 
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    async (IMediator mediator, ClaimsPrincipal user, CancellationToken ct) =>
-{
-    var query = new GetUserDevicesQuery(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty);
-    var devices = await mediator.Send(query, ct);
-    return Results.Ok(devices);
-})
-.WithName("GetDevices")
-.Produces<List<DeviceDto>>(200);
 
 // GET /api/v1/devices/{id}
 v1.MapGet("/devices/{id:guid}", 
@@ -281,7 +311,7 @@ v1.MapGet("/devices/{id:guid}/export",
 v1.MapPost("/devices/{deviceId:guid}/alerts", 
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     async (Guid deviceId,
-           CreateAlertRuleRequest req,
+           EndpointCreateAlertRuleRequest req,
            IMediator mediator,
            CancellationToken ct) =>
 {
@@ -311,7 +341,7 @@ namespace BuzzWatch.Api
 }
 
 // Record for alert rule creation request
-public record CreateAlertRuleRequest(
+public record EndpointCreateAlertRuleRequest(
     string Metric,
     string Operator,
     decimal Threshold,

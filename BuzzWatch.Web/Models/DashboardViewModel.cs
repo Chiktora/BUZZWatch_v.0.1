@@ -21,7 +21,7 @@ namespace BuzzWatch.Web.Models
         
         // Helper methods for widgets
         public IEnumerable<DeviceDto> GetTopDevices(int count = 5) => 
-            Devices.OrderByDescending(d => RecentMeasurements.TryGetValue(d.Id, out var m) && m.Any() ? m.Max(x => x.Timestamp) : DateTime.MinValue)
+            Devices.OrderByDescending(d => RecentMeasurements.TryGetValue(d.Id, out var m) && m.Any() ? m.Max(x => x.Timestamp) : new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero))
                   .Take(count);
                   
         public IEnumerable<string> GetActiveLocations() => 

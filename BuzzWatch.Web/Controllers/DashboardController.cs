@@ -19,12 +19,12 @@ namespace BuzzWatch.Web.Controllers
     {
         private readonly ApiClient _apiClient;
         private readonly ILogger<DashboardController> _logger;
-        private readonly IPredictiveAnalyticsService _predictiveAnalytics;
+        private readonly IPredictiveAnalyticsService? _predictiveAnalytics;
 
         public DashboardController(
             ApiClient apiClient, 
             ILogger<DashboardController> logger,
-            IPredictiveAnalyticsService predictiveAnalytics = null) // Optional to avoid breaking existing tests
+            IPredictiveAnalyticsService? predictiveAnalytics = null) // Optional to avoid breaking existing tests
         {
             _apiClient = apiClient;
             _logger = logger;

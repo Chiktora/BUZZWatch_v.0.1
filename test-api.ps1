@@ -44,4 +44,49 @@ try {
     } catch {
         Write-Host "Could not read response body: $_"
     }
+}
+
+$deviceId = "55E66C5F-A840-40FE-9962-D13F05F6FD8F" # Device ID from Swagger
+$apiKey = "92483e93bbc7436b80a930a88e0c6bd4"
+
+$headers = @{
+    "X-Api-Key" = $apiKey
+    "Content-Type" = "application/json"
+}
+
+$body = @{
+    recordedAt = (Get-Date).ToUniversalTime().ToString("o")
+    tempInsideC = 28.5
+    humInsidePct = 55.3
+    tempOutsideC = 21.2
+    humOutsidePct = 48.6
+    weightKg = 62.8
+} | ConvertTo-Json
+
+Write-Host "Sending test measurement to device: $deviceId"
+try {
+    # For older PowerShell, we need to ignore certificate validation
+    if (-not ([System.Management.Automation.PSTypeName]'TrustAllCertsPolicy').Type) {
+        add-type @"
+        using System.Net;
+        using System.Security.Cryptography.X509Certificates;
+        public class TrustAllCertsPolicy : ICertificatePolicy {
+            public bool CheckValidationResult(
+                ServicePoint srvPoint, X509Certificate certificate,
+                WebRequest request, int certificateProblem) {
+                return true;
+            }
+        }
+"@
+    }
+    [System.Net.ServicePointManager]::CertificatePolicy = New-Object TrustAllCertsPolicy
+    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12
+    
+    $response = Invoke-RestMethod -Uri "https://localhost:7116/api/v1/devices/$deviceId/measurements" `
+        -Method Post -Headers $headers -Body $body
+    
+    Write-Host "✅ Measurement sent successfully!" -ForegroundColor Green
+    Write-Host $response
+} catch {
+    Write-Host "❌ Error sending measurement: $_" -ForegroundColor Red
 } 

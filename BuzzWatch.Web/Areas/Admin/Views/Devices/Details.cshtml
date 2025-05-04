@@ -123,7 +123,10 @@
                         <div class="mb-3">
                             <label class="form-label">API Key</label>
                             <div class="input-group">
-                                <input type="text" class="form-control" value="@Model.ApiKey" readonly>
+                                <input type="text" class="form-control" value="••••••••" readonly>
+                                <button class="btn btn-info" type="button" id="viewApiKeyBtn">
+                                    <i class="bi bi-eye me-1"></i> View Key
+                                </button>
                                 <button class="btn btn-primary" type="button" 
                                         data-bs-toggle="modal" data-bs-target="#regenerateKeyModal">
                                     Regenerate
@@ -180,5 +183,14 @@
         setTimeout(function() {
             $('.alert').alert('close');
         }, 10000);
+
+        // API Key View Button
+        document.getElementById('viewApiKeyBtn').addEventListener('click', function() {
+            // Show a modal/dialog warning about the API key
+            if (confirm('WARNING: This API key is sensitive information and should be kept secure. Viewing it in a public place may compromise security. Are you sure you want to view it?')) {
+                // If confirmed, show the API key
+                alert('API Key for @Model.Name: @Model.ApiKey\n\nIMPORTANT: This key should be kept confidential. Do not share it with unauthorized individuals.');
+            }
+        });
     </script>
 } 

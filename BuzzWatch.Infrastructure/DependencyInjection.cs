@@ -38,6 +38,7 @@ namespace BuzzWatch.Infrastructure
             services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<IUserDeviceAccessRepository, UserDeviceAccessRepository>();
             services.AddScoped<IAlertRuleRepository, AlertRuleRepository>();
+            services.AddScoped<IApiKeyRepository, ApiKeyRepository>();
 
             // Register services
             services.AddSingleton<IDateTimeProvider, DateTimeProvider>();

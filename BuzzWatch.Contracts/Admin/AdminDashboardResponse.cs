@@ -17,14 +17,4 @@ namespace BuzzWatch.Contracts.Admin
         public double MemoryUsage { get; set; } // Percentage
         public double DiskUsage { get; set; } // Percentage
     }
-    
-    public class AlertEventResponse
-    {
-        public Guid Id { get; set; }
-        public string DeviceName { get; set; } = string.Empty;
-        public string AlertType { get; set; } = string.Empty;
-        public string Message { get; set; } = string.Empty;
-        public DateTimeOffset Timestamp { get; set; }
-        public bool IsResolved { get; set; }
-    }
 } 
