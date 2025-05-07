@@ -4,35 +4,62 @@
     ViewData["Title"] = "Log in";
 }
 
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <h1>@ViewData["Title"]</h1>
-        <section>
-            <form id="account" method="post">
-                <h2>Use your BuzzWatch account to log in.</h2>
-                <hr />
-                <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label asp-for="Email">Email</label>
-                    <span asp-validation-for="Email" class="text-danger"></span>
+<div class="flex min-h-full flex-col justify-center px-6 py-12 lg:px-8">
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="text-center">
+            <i class="bi bi-hexagon-fill text-yellow-500 text-4xl"></i>
+            <h2 class="mt-4 text-2xl font-bold leading-9 tracking-tight text-gray-900 dark:text-white">@ViewData["Title"]</h2>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">Use your BuzzWatch account to log in</p>
+        </div>
+    </div>
+
+    <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="bg-white dark:bg-gray-800 px-6 py-12 shadow sm:rounded-lg sm:px-10">
+            <form id="account" method="post" class="space-y-6">
+                <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm" role="alert"></div>
+                
+                <div>
+                    <label asp-for="Email" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Email address</label>
+                    <div class="mt-2">
+                        <input asp-for="Email" autocomplete="username" aria-required="true" 
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-yellow-600 dark:bg-gray-700 sm:text-sm sm:leading-6" 
+                            placeholder="name@example.com" />
+                        <span asp-validation-for="Email" class="mt-1 text-sm text-red-500"></span>
+                    </div>
                 </div>
-                <div class="form-floating mb-3">
-                    <input asp-for="Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" type="password" />
-                    <label asp-for="Password">Password</label>
-                    <span asp-validation-for="Password" class="text-danger"></span>
+
+                <div>
+                    <div class="flex items-center justify-between">
+                        <label asp-for="Password" class="block text-sm font-medium leading-6 text-gray-900 dark:text-gray-100">Password</label>
+                        <div class="text-sm">
+                            <a href="#" class="font-semibold text-yellow-600 hover:text-yellow-500 dark:text-yellow-400 dark:hover:text-yellow-300">Forgot password?</a>
+                        </div>
+                    </div>
+                    <div class="mt-2">
+                        <input asp-for="Password" autocomplete="current-password" aria-required="true" 
+                            class="block w-full rounded-md border-0 py-1.5 text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-700 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-yellow-600 dark:bg-gray-700 sm:text-sm sm:leading-6" 
+                            placeholder="••••••••" type="password" />
+                        <span asp-validation-for="Password" class="mt-1 text-sm text-red-500"></span>
+                    </div>
                 </div>
-                <div class="checkbox mb-3">
-                    <label asp-for="RememberMe" class="form-label">
-                        <input class="form-check-input" asp-for="RememberMe" />
+
+                <div class="flex items-center">
+                    <input id="RememberMe" name="RememberMe" type="checkbox" 
+                        class="h-4 w-4 rounded border-gray-300 text-yellow-600 focus:ring-yellow-600 dark:border-gray-600 dark:bg-gray-700" 
+                        asp-for="RememberMe" />
+                    <label asp-for="RememberMe" class="ml-2 block text-sm text-gray-900 dark:text-gray-100">
                         @Html.DisplayNameFor(m => m.RememberMe)
                     </label>
                 </div>
+
                 <div>
-                    <button id="login-submit" type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
+                    <button id="login-submit" type="submit" 
+                        class="flex w-full justify-center rounded-md bg-yellow-500 px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm hover:bg-yellow-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-500">
+                        Log in
+                    </button>
                 </div>
             </form>
-        </section>
+        </div>
     </div>
 </div>
 

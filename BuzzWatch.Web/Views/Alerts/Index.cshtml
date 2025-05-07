@@ -3,163 +3,167 @@
     ViewData["Title"] = "Alerts";
 }
 
-<div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1>Alerts</h1>
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6">
+        <h1 class="text-2xl font-bold text-gray-900 dark:text-white">Alerts</h1>
         @if (Model.ActiveAlerts > 0)
         {
-            <form asp-action="ResolveAll" method="post" onsubmit="return confirm('Are you sure you want to resolve all active alerts?');">
-                <button type="submit" class="btn btn-outline-success">
-                    <i class="bi bi-check-all me-1"></i> Resolve All
+            <form asp-action="ResolveAll" method="post" onsubmit="return confirm('Are you sure you want to resolve all active alerts?');" class="mt-4 md:mt-0">
+                <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 dark:bg-green-800 dark:text-green-100 dark:hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                    <i class="bi bi-check-all mr-2"></i> Resolve All
                 </button>
             </form>
         }
     </div>
 
-    <div class="row mb-4">
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Alert Summary</h5>
-                    <div class="mt-3">
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Active:</span>
-                            <span class="badge bg-danger">@Model.ActiveAlerts</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Acknowledged:</span>
-                            <span class="badge bg-warning">@Model.AcknowledgedAlerts</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Resolved:</span>
-                            <span class="badge bg-success">@Model.ResolvedAlerts</span>
-                        </div>
-                        <hr />
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>High Severity:</span>
-                            <span class="badge bg-danger">@Model.HighSeverityAlerts</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Medium Severity:</span>
-                            <span class="badge bg-warning">@Model.MediumSeverityAlerts</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-2">
-                            <span>Low Severity:</span>
-                            <span class="badge bg-info">@Model.LowSeverityAlerts</span>
-                        </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Alert Summary</h2>
+                <div class="mt-4 space-y-3">
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-300">Active:</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">@Model.ActiveAlerts</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-300">Acknowledged:</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">@Model.AcknowledgedAlerts</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-300">Resolved:</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100">@Model.ResolvedAlerts</span>
+                    </div>
+                    <div class="border-t border-gray-200 dark:border-gray-700 my-3"></div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-300">High Severity:</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100">@Model.HighSeverityAlerts</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-300">Medium Severity:</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100">@Model.MediumSeverityAlerts</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-gray-600 dark:text-gray-300">Low Severity:</span>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">@Model.LowSeverityAlerts</span>
                     </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Filter Alerts</h5>
-                    <form asp-action="Index" method="get" class="mt-3">
-                        <div class="row">
-                            <div class="col-md-5 mb-3">
-                                <label for="severity" class="form-label">Severity</label>
-                                <select name="severity" id="severity" class="form-select">
-                                    @foreach (var option in Model.SeverityFilterOptions)
-                                    {
-                                        <option value="@option.Value" selected="@(option.Value == Model.SelectedSeverity)">@option.Text</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="col-md-5 mb-3">
-                                <label for="status" class="form-label">Status</label>
-                                <select name="status" id="status" class="form-select">
-                                    @foreach (var option in Model.StatusFilterOptions)
-                                    {
-                                        <option value="@option.Value" selected="@(option.Value == Model.SelectedStatus)">@option.Text</option>
-                                    }
-                                </select>
-                            </div>
-                            <div class="col-md-2 d-flex align-items-end mb-3">
-                                <button type="submit" class="btn btn-primary w-100">Filter</button>
-                            </div>
+        <div class="md:col-span-2 bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+            <div class="p-6">
+                <h2 class="text-lg font-medium text-gray-900 dark:text-white">Filter Alerts</h2>
+                <form asp-action="Index" method="get" class="mt-4">
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                        <div class="md:col-span-5">
+                            <label for="severity" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Severity</label>
+                            <select name="severity" id="severity" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                @foreach (var option in Model.SeverityFilterOptions)
+                                {
+                                    <option value="@option.Value" selected="@(option.Value == Model.SelectedSeverity)">@option.Text</option>
+                                }
+                            </select>
                         </div>
-                    </form>
-                </div>
+                        <div class="md:col-span-5">
+                            <label for="status" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+                            <select name="status" id="status" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-yellow-500 focus:border-yellow-500 sm:text-sm rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+                                @foreach (var option in Model.StatusFilterOptions)
+                                {
+                                    <option value="@option.Value" selected="@(option.Value == Model.SelectedStatus)">@option.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="md:col-span-2 flex items-end">
+                            <button type="submit" class="w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-yellow-500 hover:bg-yellow-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                                Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <span>@Model.TotalAlerts Alerts</span>
-            <a href="@Url.Action("Index")" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-arrow-clockwise me-1"></i> Refresh
+    <div class="bg-white dark:bg-gray-800 overflow-hidden shadow rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex flex-col md:flex-row md:justify-between md:items-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900 dark:text-white">
+                @Model.TotalAlerts Alerts
+            </h3>
+            <a href="@Url.Action("Index")" class="mt-2 md:mt-0 inline-flex items-center px-3 py-1.5 border border-gray-300 dark:border-gray-600 text-sm leading-4 font-medium rounded-md text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                <i class="bi bi-arrow-clockwise mr-2"></i> Refresh
             </a>
         </div>
-        <div class="card-body p-0">
+        <div class="border-t border-gray-200 dark:border-gray-700">
             @if (Model.Alerts.Any())
             {
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                        <thead class="bg-gray-50 dark:bg-gray-700">
                             <tr>
-                                <th>Severity</th>
-                                <th>Device</th>
-                                <th>Message</th>
-                                <th>Time</th>
-                                <th>Status</th>
-                                <th>Actions</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Severity</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Device</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Message</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Time</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Status</th>
+                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                             @foreach (var alert in Model.Alerts.OrderByDescending(a => a.Timestamp))
                             {
                                 string severityClass = alert.Severity switch
                                 {
-                                    "High" => "text-bg-danger",
-                                    "Medium" => "text-bg-warning",
-                                    "Low" => "text-bg-info",
-                                    _ => "text-bg-secondary"
+                                    "High" => "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100",
+                                    "Medium" => "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100",
+                                    "Low" => "bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100",
+                                    _ => "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
                                 };
                                 
                                 string statusClass = alert.Status switch
                                 {
-                                    "Active" => "text-bg-danger",
-                                    "Acknowledged" => "text-bg-warning",
-                                    "Resolved" => "text-bg-success",
-                                    _ => "text-bg-secondary"
+                                    "Active" => "bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100",
+                                    "Acknowledged" => "bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100",
+                                    "Resolved" => "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100",
+                                    _ => "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100"
                                 };
                                 
-                                <tr id="alert-@alert.Id">
-                                    <td>
-                                        <span class="badge @severityClass">@alert.Severity</span>
+                                <tr id="alert-@alert.Id" class="hover:bg-gray-50 dark:hover:bg-gray-700">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium @severityClass">@alert.Severity</span>
                                     </td>
-                                    <td>
-                                        <a href="@Url.Action("DeviceDetails", "Dashboard", new { id = alert.DeviceId })">
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <a href="@Url.Action("DeviceDetails", "Dashboard", new { id = alert.DeviceId })" class="text-yellow-600 dark:text-yellow-400 hover:text-yellow-900 dark:hover:text-yellow-300">
                                             @Model.GetDeviceName(alert.DeviceId)
                                         </a>
                                     </td>
-                                    <td>@alert.Message</td>
-                                    <td>@alert.Timestamp.ToLocalTime().ToString("MMM dd, HH:mm")</td>
-                                    <td>
-                                        <span class="badge @statusClass">@alert.Status</span>
+                                    <td class="px-6 py-4">
+                                        <div class="text-sm text-gray-900 dark:text-gray-100">@alert.Message</div>
                                     </td>
-                                    <td>
-                                        <div class="btn-group btn-group-sm">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                                        @alert.Timestamp.ToLocalTime().ToString("MMM dd, HH:mm")
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <span class="px-2.5 py-0.5 rounded-full text-xs font-medium @statusClass">@alert.Status</span>
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                        <div class="flex space-x-2">
                                             @if (alert.Status == "Active")
                                             {
-                                                <form asp-action="Acknowledge" asp-route-id="@alert.Id" method="post" class="d-inline me-1">
-                                                    <button type="submit" class="btn btn-outline-warning" title="Acknowledge">
+                                                <form asp-action="Acknowledge" asp-route-id="@alert.Id" method="post" class="inline-block">
+                                                    <button type="submit" class="inline-flex items-center p-1.5 border border-yellow-300 text-yellow-700 dark:text-yellow-300 dark:border-yellow-700 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500" title="Acknowledge">
                                                         <i class="bi bi-hand-thumbs-up"></i>
                                                     </button>
                                                 </form>
-                                                <form asp-action="Resolve" asp-route-id="@alert.Id" method="post" class="d-inline">
-                                                    <button type="submit" class="btn btn-outline-success" title="Resolve">
+                                                <form asp-action="Resolve" asp-route-id="@alert.Id" method="post" class="inline-block">
+                                                    <button type="submit" class="inline-flex items-center p-1.5 border border-green-300 text-green-700 dark:text-green-300 dark:border-green-700 rounded hover:bg-green-100 dark:hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" title="Resolve">
                                                         <i class="bi bi-check-lg"></i>
                                                     </button>
                                                 </form>
                                             }
                                             @if (alert.Status == "Acknowledged")
                                             {
-                                                <form asp-action="Resolve" asp-route-id="@alert.Id" method="post" class="d-inline">
-                                                    <button type="submit" class="btn btn-outline-success" title="Resolve">
+                                                <form asp-action="Resolve" asp-route-id="@alert.Id" method="post" class="inline-block">
+                                                    <button type="submit" class="inline-flex items-center p-1.5 border border-green-300 text-green-700 dark:text-green-300 dark:border-green-700 rounded hover:bg-green-100 dark:hover:bg-green-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500" title="Resolve">
                                                         <i class="bi bi-check-lg"></i>
                                                     </button>
                                                 </form>
@@ -174,13 +178,13 @@
             }
             else
             {
-                <div class="text-center p-5">
-                    <i class="bi bi-shield-check display-1 text-success"></i>
-                    <p class="mt-3">No alerts found that match your filter criteria.</p>
+                <div class="text-center py-12">
+                    <i class="bi bi-shield-check text-6xl text-green-500 dark:text-green-400"></i>
+                    <p class="mt-4 text-gray-600 dark:text-gray-300">No alerts found that match your filter criteria.</p>
                     @if (!string.IsNullOrEmpty(Model.SelectedSeverity) || !string.IsNullOrEmpty(Model.SelectedStatus))
                     {
-                        <a href="@Url.Action("Index")" class="btn btn-outline-primary mt-2">
-                            <i class="bi bi-funnel me-1"></i> Clear Filters
+                        <a href="@Url.Action("Index")" class="inline-flex items-center px-4 py-2 mt-4 border border-transparent text-sm font-medium rounded-md text-yellow-700 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-800 dark:text-yellow-100 dark:hover:bg-yellow-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500">
+                            <i class="bi bi-funnel mr-2"></i> Clear Filters
                         </a>
                     }
                 </div>
