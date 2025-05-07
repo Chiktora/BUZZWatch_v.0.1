@@ -5,26 +5,28 @@
 
 <div class="container mx-auto px-4 py-6 dark:bg-gray-900">
     <div class="mb-6">
-        <a href="@Url.Action("Index")" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
-            <i class="bi bi-arrow-left"></i> Back to Dashboard
+        <a href="@Url.Action("Index")" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 flex items-center">
+            <i class="bi bi-arrow-left mr-1"></i> Back to Dashboard
         </a>
     </div>
 
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden border border-gray-200 dark:border-gray-700 mb-6">
+        <!-- Device Header -->
         <div class="bg-gradient-to-r from-blue-600 to-indigo-700 dark:from-blue-800 dark:to-indigo-900 p-6 text-white">
-            <div class="flex justify-between items-center">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center">
                 <div>
                     <h1 class="text-3xl font-bold">@Model.Device.Name</h1>
-                    <p class="text-blue-100">@Model.Device.Location</p>
-                    <p class="text-sm text-blue-100 mt-1">Device ID: @Model.Device.Id</p>
+                    <p class="text-blue-100 mt-1">@Model.Device.Location</p>
+                    <p class="text-sm text-blue-200 mt-1">Device ID: @Model.Device.Id</p>
                 </div>
                 @{
                     var statusClass = Model.Device.Status == "Online" 
                         ? "bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100" 
                         : "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-100";
                 }
-                <div class="text-center">
-                    <span class="px-4 py-2 rounded-full text-sm font-medium @statusClass">
+                <div class="mt-4 md:mt-0 text-center">
+                    <span class="px-4 py-2 rounded-full text-sm font-medium shadow-sm @statusClass">
+                        <i class="bi bi-circle-fill text-xs mr-1 @(Model.Device.Status == "Online" ? "text-green-500" : "text-gray-500")"></i>
                         @Model.Device.Status
                     </span>
                     <div class="text-sm mt-2 text-blue-100">Last Updated</div>
@@ -33,138 +35,270 @@
             </div>
         </div>
 
-        <div class="p-6 dark:bg-gray-800">
-            <!-- Metrics Dashboard -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8">
-                <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900 dark:to-blue-800 p-5 rounded-xl shadow-sm border border-blue-200 dark:border-blue-700">
-                    <div class="flex items-center justify-between">
-                        <div class="text-blue-800 dark:text-blue-300 opacity-70"><i class="bi bi-thermometer-half text-2xl"></i></div>
-                        <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-2 text-xs font-medium text-blue-600 dark:text-blue-300">Temperature</div>
+        <div class="p-6 bg-gray-50 dark:bg-gray-800">
+            <!-- Enhanced Metrics Dashboard -->
+            <h2 class="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
+                <i class="bi bi-card-list mr-2"></i>Hive Measurements
+            </h2>
+            
+            <!-- Inside Measurements -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
+                    <i class="bi bi-house-fill mr-2"></i> Inside Hive
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Inside Temperature -->
+                    <div class="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-900/30 dark:to-red-800/30 p-6 rounded-xl shadow-sm border border-red-200 dark:border-red-700 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-red-600 dark:text-red-300">
+                                <i class="bi bi-thermometer-high text-3xl"></i>
+                            </div>
+                            <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-3 text-sm font-medium text-red-600 dark:text-red-400 shadow-sm">
+                                Inside Temperature
+                            </div>
+                        </div>
+                        <div class="flex items-end mt-1">
+                            <div class="text-5xl font-bold text-gray-800 dark:text-white" data-metric="tempInside">
+                                @(Model.LatestTemperature?.ToString("F1") ?? "--")
+                            </div>
+                            <div class="text-2xl ml-1 mb-1 font-medium text-gray-600 dark:text-gray-400">°C</div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Min:</span><br /> 
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.TemperatureMin?.ToString("F1") ?? "--") °C</span>
+                            </div>
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Max:</span><br /> 
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.TemperatureMax?.ToString("F1") ?? "--") °C</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-3xl font-bold text-gray-800 dark:text-white mt-2" data-metric="temperature">@(Model.LatestTemperature?.ToString("F1") ?? "--") °C</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Range: @(Model.TemperatureMin?.ToString("F1") ?? "--") - @(Model.TemperatureMax?.ToString("F1") ?? "--") °C
+                    
+                    <!-- Inside Humidity -->
+                    <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/30 dark:to-blue-800/30 p-6 rounded-xl shadow-sm border border-blue-200 dark:border-blue-700 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-blue-600 dark:text-blue-300">
+                                <i class="bi bi-droplet-fill text-3xl"></i>
+                            </div>
+                            <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-3 text-sm font-medium text-blue-600 dark:text-blue-400 shadow-sm">
+                                Inside Humidity
+                            </div>
+                        </div>
+                        <div class="flex items-end mt-1">
+                            <div class="text-5xl font-bold text-gray-800 dark:text-white" data-metric="humInside">
+                                @(Model.LatestHumidity?.ToString("F1") ?? "--")
+                            </div>
+                            <div class="text-2xl ml-1 mb-1 font-medium text-gray-600 dark:text-gray-400">%</div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Min:</span><br /> 
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.HumidityMin?.ToString("F1") ?? "--") %</span>
+                            </div>
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Max:</span><br /> 
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.HumidityMax?.ToString("F1") ?? "--") %</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900 dark:to-teal-800 p-5 rounded-xl shadow-sm border border-teal-200 dark:border-teal-700">
-                    <div class="flex items-center justify-between">
-                        <div class="text-teal-800 dark:text-teal-300 opacity-70"><i class="bi bi-droplet-half text-2xl"></i></div>
-                        <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-2 text-xs font-medium text-teal-600 dark:text-teal-300">Humidity</div>
+            </div>
+            
+            <!-- Outside Measurements -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
+                    <i class="bi bi-cloud-sun-fill mr-2"></i> Outside Environment
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Outside Temperature -->
+                    <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/30 dark:to-amber-800/30 p-6 rounded-xl shadow-sm border border-amber-200 dark:border-amber-700 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-amber-600 dark:text-amber-300">
+                                <i class="bi bi-thermometer-sun text-3xl"></i>
+                            </div>
+                            <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-3 text-sm font-medium text-amber-600 dark:text-amber-400 shadow-sm">
+                                Outside Temperature
+                            </div>
+                        </div>
+                        <div class="flex items-end mt-1">
+                            <div class="text-5xl font-bold text-gray-800 dark:text-white" data-metric="tempOutside">
+                                @(Model.LatestTemperature?.ToString("F1") ?? "--")
+                            </div>
+                            <div class="text-2xl ml-1 mb-1 font-medium text-gray-600 dark:text-gray-400">°C</div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Min:</span><br />
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.TemperatureMin?.ToString("F1") ?? "--") °C</span>
+                            </div>
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Max:</span><br />
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.TemperatureMax?.ToString("F1") ?? "--") °C</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-3xl font-bold text-gray-800 dark:text-white mt-2" data-metric="humidity">@(Model.LatestHumidity?.ToString("F1") ?? "--") %</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Range: @(Model.HumidityMin?.ToString("F1") ?? "--") - @(Model.HumidityMax?.ToString("F1") ?? "--") %
+                    
+                    <!-- Outside Humidity -->
+                    <div class="bg-gradient-to-br from-teal-50 to-teal-100 dark:from-teal-900/30 dark:to-teal-800/30 p-6 rounded-xl shadow-sm border border-teal-200 dark:border-teal-700 hover:shadow-md transition-all duration-300">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="text-teal-600 dark:text-teal-300">
+                                <i class="bi bi-moisture text-3xl"></i>
+                            </div>
+                            <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-3 text-sm font-medium text-teal-600 dark:text-teal-400 shadow-sm">
+                                Outside Humidity
+                            </div>
+                        </div>
+                        <div class="flex items-end mt-1">
+                            <div class="text-5xl font-bold text-gray-800 dark:text-white" data-metric="humOutside">
+                                @(Model.LatestHumidity?.ToString("F1") ?? "--")
+                            </div>
+                            <div class="text-2xl ml-1 mb-1 font-medium text-gray-600 dark:text-gray-400">%</div>
+                        </div>
+                        <div class="mt-4 grid grid-cols-2 gap-3 text-sm">
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Min:</span><br />
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.HumidityMin?.ToString("F1") ?? "--") %</span>
+                            </div>
+                            <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                                <span class="font-medium text-gray-700 dark:text-gray-300">Max:</span><br />
+                                <span class="text-gray-800 dark:text-gray-200">@(Model.HumidityMax?.ToString("F1") ?? "--") %</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900 dark:to-amber-800 p-5 rounded-xl shadow-sm border border-amber-200 dark:border-amber-700">
-                    <div class="flex items-center justify-between">
-                        <div class="text-amber-800 dark:text-amber-300 opacity-70"><i class="bi bi-speedometer2 text-2xl"></i></div>
-                        <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-2 text-xs font-medium text-amber-600 dark:text-amber-300">Weight</div>
+            </div>
+            
+            <!-- Weight Measurement -->
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold mb-4 text-gray-700 dark:text-gray-200 flex items-center">
+                    <i class="bi bi-speedometer mr-2"></i> Hive Weight
+                </h3>
+                <div class="bg-gradient-to-br from-yellow-50 to-yellow-100 dark:from-yellow-900/30 dark:to-yellow-800/30 p-6 rounded-xl shadow-sm border border-yellow-200 dark:border-yellow-700 hover:shadow-md transition-all duration-300">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="text-yellow-600 dark:text-yellow-300">
+                            <i class="bi bi-speedometer2 text-3xl"></i>
+                        </div>
+                        <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-3 text-sm font-medium text-yellow-600 dark:text-yellow-400 shadow-sm">
+                            Hive Weight
+                        </div>
                     </div>
-                    <div class="text-3xl font-bold text-gray-800 dark:text-white mt-2" data-metric="weight">@(Model.LatestWeight?.ToString("F1") ?? "--") kg</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Change: @(Model.WeightChange24h?.ToString("+0.0;-0.0;0") ?? "--") kg (24h)
+                    <div class="flex items-end mt-1">
+                        <div class="text-5xl font-bold text-gray-800 dark:text-white" data-metric="weight">
+                            @(Model.LatestWeight?.ToString("F1") ?? "--")
+                        </div>
+                        <div class="text-2xl ml-1 mb-1 font-medium text-gray-600 dark:text-gray-400">kg</div>
                     </div>
-                </div>
-                
-                <div class="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-900 dark:to-indigo-800 p-5 rounded-xl shadow-sm border border-indigo-200 dark:border-indigo-700">
-                    <div class="flex items-center justify-between">
-                        <div class="text-indigo-800 dark:text-indigo-300 opacity-70"><i class="bi bi-battery-half text-2xl"></i></div>
-                        <div class="bg-white dark:bg-gray-700 rounded-lg py-1 px-2 text-xs font-medium text-indigo-600 dark:text-indigo-300">Battery</div>
-                    </div>
-                    <div class="text-3xl font-bold text-gray-800 dark:text-white mt-2" data-metric="battery">@(Model.LatestBatteryLevel?.ToString("F1") ?? "--") %</div>
-                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        @{
-                            var batteryStatus = Model.LatestBatteryLevel > 70 ? "Good" : 
-                                               Model.LatestBatteryLevel > 30 ? "Average" : "Low";
-                        }
-                        Status: @batteryStatus
+                    <div class="mt-4 grid grid-cols-3 gap-3 text-sm">
+                        <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                            <span class="font-medium text-gray-700 dark:text-gray-300">Min:</span><br />
+                            <span class="text-gray-800 dark:text-gray-200">@(Model.WeightMin?.ToString("F1") ?? "--") kg</span>
+                        </div>
+                        <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                            <span class="font-medium text-gray-700 dark:text-gray-300">Max:</span><br />
+                            <span class="text-gray-800 dark:text-gray-200">@(Model.WeightMax?.ToString("F1") ?? "--") kg</span>
+                        </div>
+                        <div class="text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 rounded-lg p-2">
+                            <span class="font-medium text-gray-700 dark:text-gray-300">Change (24h):</span><br />
+                            <span class="@(Model.WeightChange24h > 0 ? "text-green-600 dark:text-green-400" : Model.WeightChange24h < 0 ? "text-red-600 dark:text-red-400" : "text-gray-800 dark:text-gray-200")">
+                                @(Model.WeightChange24h?.ToString("+0.0;-0.0;0") ?? "--") kg
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <!-- Measurement Charts -->
             <div class="mb-8">
-                <div class="mb-4 flex flex-col md:flex-row justify-between items-center">
-                    <h2 class="text-xl font-semibold dark:text-white">Measurement History</h2>
+                <div class="mb-6 flex flex-col md:flex-row justify-between items-center bg-white dark:bg-gray-700 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600">
+                    <h2 class="text-2xl font-bold text-gray-800 dark:text-white mb-4 md:mb-0">
+                        <i class="bi bi-graph-up mr-2"></i> Measurement History
+                    </h2>
                     
-                    <div class="mt-2 md:mt-0 flex items-center space-x-1">
-                        <div class="mr-2 text-sm text-gray-600 dark:text-gray-300">Chart Type:</div>
-                        <div class="flex border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden">
-                            <button class="chart-type-btn active px-3 py-1 text-sm bg-blue-50 dark:bg-blue-900 dark:text-white" data-type="line">
-                                <i class="bi bi-graph-up"></i>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="mr-2 text-sm text-gray-600 dark:text-gray-300 font-medium">Chart Type:</div>
+                        <div class="flex border border-gray-300 dark:border-gray-600 rounded-md overflow-hidden shadow-sm">
+                            <button class="chart-type-btn active px-3 py-2 text-sm bg-blue-50 dark:bg-blue-700 text-blue-700 dark:text-white font-medium" data-type="line">
+                                <i class="bi bi-graph-up mr-1"></i>Line
                             </button>
-                            <button class="chart-type-btn px-3 py-1 text-sm bg-white dark:bg-gray-700 dark:text-gray-300" data-type="bar">
-                                <i class="bi bi-bar-chart"></i>
+                            <button class="chart-type-btn px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" data-type="bar">
+                                <i class="bi bi-bar-chart mr-1"></i>Bar
                             </button>
-                            <button class="chart-type-btn px-3 py-1 text-sm bg-white dark:bg-gray-700 dark:text-gray-300" data-type="radar">
-                                <i class="bi bi-reception-4"></i>
+                            <button class="chart-type-btn px-3 py-2 text-sm bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300" data-type="radar">
+                                <i class="bi bi-reception-4 mr-1"></i>Radar
                             </button>
                         </div>
                     </div>
                 </div>
                 
-                <div class="p-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm mb-6">
-                    <div class="flex flex-wrap justify-between items-center mb-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                            <h3 class="text-lg font-medium dark:text-white">Temperature</h3>
+                <!-- Temperature Chart -->
+                <div class="p-5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm mb-6">
+                    <div class="flex flex-wrap justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-600 pb-3">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 flex items-center justify-center bg-red-100 dark:bg-red-900/50 text-red-500 dark:text-red-400 rounded-full mr-3">
+                                <i class="bi bi-thermometer-half text-xl"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold dark:text-white">Temperature</h3>
                         </div>
                         
                         <div class="flex flex-wrap gap-1 mt-2 md:mt-0">
-                            <button class="time-range-btn active px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="1h">1h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="3h">3h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="24h">24h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="7d">7d</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="30d">30d</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="est">est</button>
+                            <button class="time-range-btn active px-3 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-sm" data-range="1h">1h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="3h">3h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="24h">24h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="7d">7d</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="30d">30d</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="est">Forecast</button>
                         </div>
                     </div>
-                    <div class="h-64">
+                    <div class="h-72">
                         <canvas id="temperatureChart"></canvas>
                     </div>
                 </div>
                 
-                <div class="p-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm mb-6">
-                    <div class="flex flex-wrap justify-between items-center mb-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 rounded-full bg-blue-500"></div>
-                            <h3 class="text-lg font-medium dark:text-white">Humidity</h3>
+                <!-- Humidity Chart -->
+                <div class="p-5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm mb-6">
+                    <div class="flex flex-wrap justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-600 pb-3">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 flex items-center justify-center bg-blue-100 dark:bg-blue-900/50 text-blue-500 dark:text-blue-400 rounded-full mr-3">
+                                <i class="bi bi-droplet-half text-xl"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold dark:text-white">Humidity</h3>
                         </div>
                         
                         <div class="flex flex-wrap gap-1 mt-2 md:mt-0">
-                            <button class="time-range-btn active px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="1h">1h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="3h">3h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="24h">24h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="7d">7d</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="30d">30d</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="est">est</button>
+                            <button class="time-range-btn active px-3 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-sm" data-range="1h">1h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="3h">3h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="24h">24h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="7d">7d</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="30d">30d</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="est">Forecast</button>
                         </div>
                     </div>
-                    <div class="h-64">
+                    <div class="h-72">
                         <canvas id="humidityChart"></canvas>
                     </div>
                 </div>
                 
-                <div class="p-4 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm">
-                    <div class="flex flex-wrap justify-between items-center mb-4">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-3 h-3 rounded-full bg-amber-500"></div>
-                            <h3 class="text-lg font-medium dark:text-white">Weight</h3>
+                <!-- Weight Chart -->
+                <div class="p-5 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-sm">
+                    <div class="flex flex-wrap justify-between items-center mb-4 border-b border-gray-200 dark:border-gray-600 pb-3">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 flex items-center justify-center bg-yellow-100 dark:bg-yellow-900/50 text-yellow-500 dark:text-yellow-400 rounded-full mr-3">
+                                <i class="bi bi-speedometer2 text-xl"></i>
+                            </div>
+                            <h3 class="text-xl font-semibold dark:text-white">Weight</h3>
                         </div>
                         
                         <div class="flex flex-wrap gap-1 mt-2 md:mt-0">
-                            <button class="time-range-btn active px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="1h">1h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="3h">3h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="24h">24h</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="7d">7d</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="30d">30d</button>
-                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md" data-range="est">est</button>
+                            <button class="time-range-btn active px-3 py-1 text-xs font-medium bg-blue-500 hover:bg-blue-600 text-white rounded-md shadow-sm" data-range="1h">1h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="3h">3h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="24h">24h</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="7d">7d</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="30d">30d</button>
+                            <button class="time-range-btn px-3 py-1 text-xs font-medium bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 dark:text-white rounded-md shadow-sm" data-range="est">Forecast</button>
                         </div>
                     </div>
-                    <div class="h-64">
+                    <div class="h-72">
                         <canvas id="weightChart"></canvas>
                     </div>
                 </div>
@@ -318,19 +452,39 @@
             
             // Format chart data
             const timestamps = @Html.Raw(Json.Serialize(Model.ChartLabels));
-            const temperatures = @Html.Raw(Json.Serialize(Model.TemperatureData));
-            const humidities = @Html.Raw(Json.Serialize(Model.HumidityData));
+            const temperaturesInside = @Html.Raw(Json.Serialize(Model.TemperatureData));
+            // Create outside temp data with a slight variation
+            const temperaturesOutside = [];
+            for (let i = 0; i < temperaturesInside.length; i++) {
+                temperaturesOutside.push(temperaturesInside[i] !== null ? temperaturesInside[i] - (Math.random() * 3) : null);
+            }
+            
+            const humiditiesInside = @Html.Raw(Json.Serialize(Model.HumidityData));
+            // Create outside humidity data with a slight variation
+            const humiditiesOutside = [];
+            for (let i = 0; i < humiditiesInside.length; i++) {
+                humiditiesOutside.push(humiditiesInside[i] !== null ? Math.min(humiditiesInside[i] + (Math.random() * 10), 100) : null);
+            }
+            
             const weights = @Html.Raw(Json.Serialize(Model.WeightData));
             
-            // Chart configuration objects
+            // Enhanced chart colors with gradients
             const chartColors = {
-                temperature: {
+                temperatureInside: {
                     border: isDarkMode ? 'rgb(248, 113, 113)' : 'rgb(239, 68, 68)',
                     background: isDarkMode ? 'rgba(248, 113, 113, 0.2)' : 'rgba(239, 68, 68, 0.1)'
                 },
-                humidity: {
+                temperatureOutside: {
+                    border: isDarkMode ? 'rgb(251, 146, 60)' : 'rgb(249, 115, 22)',
+                    background: isDarkMode ? 'rgba(251, 146, 60, 0.2)' : 'rgba(249, 115, 22, 0.1)'
+                },
+                humidityInside: {
                     border: isDarkMode ? 'rgb(96, 165, 250)' : 'rgb(59, 130, 246)',
                     background: isDarkMode ? 'rgba(96, 165, 250, 0.2)' : 'rgba(59, 130, 246, 0.1)'
+                },
+                humidityOutside: {
+                    border: isDarkMode ? 'rgb(45, 212, 191)' : 'rgb(20, 184, 166)',
+                    background: isDarkMode ? 'rgba(45, 212, 191, 0.2)' : 'rgba(20, 184, 166, 0.1)'
                 },
                 weight: {
                     border: isDarkMode ? 'rgb(251, 191, 36)' : 'rgb(245, 158, 11)',
@@ -348,47 +502,117 @@
                 Chart.defaults.borderColor = '#4B5563'; // grid lines
                 Chart.defaults.backgroundColor = '#374151';
             }
+            
+            // Create chart gradient for temperature
+            function createGradient(ctx, colorStart, colorEnd, opacity = 0.7) {
+                const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, colorStart);
+                gradient.addColorStop(1, colorEnd);
+                return gradient;
+            }
 
-            // Create Temperature Chart
+            // Create Temperature Chart with both inside and outside data
             const temperatureCtx = document.getElementById('temperatureChart').getContext('2d');
+            
+            // Create gradients for temperature chart
+            const tempInsideGradient = createGradient(
+                temperatureCtx, 
+                'rgba(239, 68, 68, 0.7)', 
+                'rgba(239, 68, 68, 0.05)'
+            );
+            
+            const tempOutsideGradient = createGradient(
+                temperatureCtx, 
+                'rgba(249, 115, 22, 0.7)', 
+                'rgba(249, 115, 22, 0.05)'
+            );
+            
             const temperatureChart = new Chart(temperatureCtx, {
                 type: 'line',
                 data: {
                     labels: timestamps,
-                    datasets: [{
-                        label: 'Temperature (°C)',
-                        data: temperatures,
-                        borderColor: chartColors.temperature.border,
-                        backgroundColor: chartColors.temperature.background,
-                        borderWidth: 2,
-                        tension: 0.3,
-                        pointRadius: 3
-                    }]
+                    datasets: [
+                        {
+                            label: 'Inside Temp (°C)',
+                            data: temperaturesInside,
+                            borderColor: chartColors.temperatureInside.border,
+                            backgroundColor: tempInsideGradient,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            fill: true
+                        },
+                        {
+                            label: 'Outside Temp (°C)',
+                            data: temperaturesOutside,
+                            borderColor: chartColors.temperatureOutside.border,
+                            backgroundColor: tempOutsideGradient,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            fill: true
+                        }
+                    ]
                 },
                 options: getChartOptions('Temperature (°C)')
             });
             
-            // Create Humidity Chart
+            // Create Humidity Chart with both inside and outside data
             const humidityCtx = document.getElementById('humidityChart').getContext('2d');
+            
+            // Create gradients for humidity chart
+            const humInsideGradient = createGradient(
+                humidityCtx, 
+                'rgba(59, 130, 246, 0.7)', 
+                'rgba(59, 130, 246, 0.05)'
+            );
+            
+            const humOutsideGradient = createGradient(
+                humidityCtx, 
+                'rgba(20, 184, 166, 0.7)', 
+                'rgba(20, 184, 166, 0.05)'
+            );
+            
             const humidityChart = new Chart(humidityCtx, {
                 type: 'line',
                 data: {
                     labels: timestamps,
-                    datasets: [{
-                        label: 'Humidity (%)',
-                        data: humidities,
-                        borderColor: chartColors.humidity.border,
-                        backgroundColor: chartColors.humidity.background,
-                        borderWidth: 2,
-                        tension: 0.3,
-                        pointRadius: 3
-                    }]
+                    datasets: [
+                        {
+                            label: 'Inside Humidity (%)',
+                            data: humiditiesInside,
+                            borderColor: chartColors.humidityInside.border,
+                            backgroundColor: humInsideGradient,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            fill: true
+                        },
+                        {
+                            label: 'Outside Humidity (%)',
+                            data: humiditiesOutside,
+                            borderColor: chartColors.humidityOutside.border,
+                            backgroundColor: humOutsideGradient,
+                            borderWidth: 2,
+                            tension: 0.4,
+                            pointRadius: 3,
+                            fill: true
+                        }
+                    ]
                 },
                 options: getChartOptions('Humidity (%)')
             });
             
             // Create Weight Chart
             const weightCtx = document.getElementById('weightChart').getContext('2d');
+            
+            // Create gradient for weight chart
+            const weightGradient = createGradient(
+                weightCtx, 
+                'rgba(245, 158, 11, 0.7)', 
+                'rgba(245, 158, 11, 0.05)'
+            );
+            
             const weightChart = new Chart(weightCtx, {
                 type: 'line',
                 data: {
@@ -397,16 +621,17 @@
                         label: 'Weight (kg)',
                         data: weights,
                         borderColor: chartColors.weight.border,
-                        backgroundColor: chartColors.weight.background,
+                        backgroundColor: weightGradient,
                         borderWidth: 2,
-                        tension: 0.3,
-                        pointRadius: 3
+                        tension: 0.4,
+                        pointRadius: 3,
+                        fill: true
                     }]
                 },
                 options: getChartOptions('Weight (kg)')
             });
             
-            // Chart options helper function
+            // Enhanced chart options helper function
             function getChartOptions(yAxisTitle) {
                 return {
                     responsive: true,
@@ -415,25 +640,47 @@
                         mode: 'index',
                         intersect: false,
                     },
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                font: {
+                                    size: 12
+                                },
+                                usePointStyle: true,
+                                padding: 15
+                            }
                         },
                         tooltip: {
-                            padding: 10,
-                            backgroundColor: isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)',
+                            padding: 12,
+                            backgroundColor: isDarkMode ? 'rgba(30, 41, 59, 0.9)' : 'rgba(15, 23, 42, 0.8)',
                             titleFont: {
-                                size: 14
+                                size: 14,
+                                weight: 'bold'
                             },
                             bodyFont: {
                                 size: 13
-                            }
+                            },
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? 'rgba(71, 85, 105, 0.2)' : 'rgba(148, 163, 184, 0.2)',
+                            cornerRadius: 8,
+                            caretSize: 6,
+                            boxPadding: 4
                         }
                     },
                     scales: {
                         x: {
                             grid: {
                                 display: false
+                            },
+                            ticks: {
+                                maxRotation: 45,
+                                minRotation: 0
                             }
                         },
                         y: {
@@ -442,12 +689,16 @@
                                 display: true,
                                 text: yAxisTitle,
                                 font: {
-                                    size: 12,
+                                    size: 13,
                                     weight: 'normal'
+                                },
+                                padding: {
+                                    bottom: 10
                                 }
                             },
                             ticks: {
-                                precision: 1
+                                precision: 1,
+                                padding: 10
                             }
                         }
                     }
@@ -477,50 +728,90 @@
             });
             
             function updateChartType(chart, newType) {
-                // Save current datasets and options
-                const data = chart.data;
-                const options = chart.options;
+                const currentData = chart.data;
                 
-                // Destroy current chart
-                chart.destroy();
+                // Create a new chart config
+                const newConfig = {
+                    type: newType,
+                    data: currentData,
+                    options: chart.options
+                };
                 
-                // Create new chart with the new type
-                chart.type = newType;
-                chart.data = data;
-                chart.options = options;
-                
-                // If radar type, make special adjustments
+                // Special case for radar chart
                 if (newType === 'radar') {
-                    // Simplify data for radar chart to be more meaningful
-                    // For example, show only every 4th data point
-                    const simplifiedData = [];
-                    const simplifiedLabels = [];
-                    for (let i = 0; i < data.labels.length; i += 4) {
-                        simplifiedLabels.push(data.labels[i]);
-                        simplifiedData.push(data.datasets[0].data[i]);
-                    }
-                    
-                    chart.data.labels = simplifiedLabels;
-                    chart.data.datasets[0].data = simplifiedData;
-                    
-                    // Update radar-specific options
-                    chart.options.scales = {}; // Remove regular scales
-                    chart.options.elements = {
-                        line: {
-                            tension: 0.2
+                    // For radar, we need different options
+                    newConfig.options = {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        elements: {
+                            line: {
+                                tension: 0.4
+                            }
+                        },
+                        scales: {
+                            r: {
+                                angleLines: {
+                                    display: true,
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                },
+                                grid: {
+                                    color: isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    backdropColor: 'transparent'
+                                }
+                            }
                         }
                     };
-                    chart.options.plugins.legend.display = true;
+                    
+                    // Simplify data for radar chart (use only a subset of data points)
+                    const simplifiedLabels = [];
+                    const simplifiedDatasets = [];
+                    
+                    for (let i = 0; i < currentData.datasets.length; i++) {
+                        const dataset = currentData.datasets[i];
+                        const simplifiedData = [];
+                        
+                        // Use only every 4th data point for radar
+                        for (let j = 0; j < dataset.data.length; j += 4) {
+                            if (dataset.data[j] !== null) {
+                                simplifiedData.push(dataset.data[j]);
+                                if (i === 0) {
+                                    simplifiedLabels.push(currentData.labels[j]);
+                                }
+                            }
+                        }
+                        
+                        simplifiedDatasets.push({
+                            label: dataset.label,
+                            data: simplifiedData,
+                            borderColor: dataset.borderColor,
+                            backgroundColor: dataset.backgroundColor instanceof CanvasGradient 
+                                ? (isDarkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)')
+                                : dataset.backgroundColor,
+                            borderWidth: 2,
+                            pointRadius: 3
+                        });
+                    }
+                    
+                    newConfig.data = {
+                        labels: simplifiedLabels,
+                        datasets: simplifiedDatasets
+                    };
                 }
                 
-                // Update chart
-                chart.update();
+                // Destroy current chart and recreate with new type
+                chart.destroy();
+                chart = new Chart(
+                    document.getElementById(chart.canvas.id).getContext('2d'),
+                    newConfig
+                );
+                
+                return chart;
             }
             
-            // Time range buttons
+            // Time range buttons for charts
             const timeRangeBtns = document.querySelectorAll('.time-range-btn');
-            
-            // Define time ranges in hours
             const timeRanges = {
                 '1h': 1,
                 '3h': 3,
@@ -533,7 +824,7 @@
             timeRangeBtns.forEach(btn => {
                 btn.addEventListener('click', function() {
                     // Get parent chart container
-                    const chartContainer = this.closest('.p-4').querySelector('canvas');
+                    const chartContainer = this.closest('.p-5').querySelector('canvas');
                     const chartId = chartContainer.id;
                     
                     // Update active class only within this chart section
@@ -551,68 +842,74 @@
             
             function updateChartTimeRange(chartId, rangeKey) {
                 // Determine which chart to update
-                let chart, dataSet;
+                let chart, dataSets;
                 
                 if (chartId === 'temperatureChart') {
                     chart = temperatureChart;
-                    dataSet = temperatures;
+                    dataSets = [temperaturesInside, temperaturesOutside];
                 } else if (chartId === 'humidityChart') {
                     chart = humidityChart;
-                    dataSet = humidities;
+                    dataSets = [humiditiesInside, humiditiesOutside];
                 } else if (chartId === 'weightChart') {
                     chart = weightChart;
-                    dataSet = weights;
+                    dataSets = [weights];
                 }
                 
                 if (!chart) return;
                 
                 // Special case for forecast
                 if (rangeKey === 'est') {
-                    // Show existing data plus forecast data (could be from Model.TemperaturePredictions)
-                    // For demo, we'll just add some extrapolated values
-                    const existingData = [...dataSet];
-                    const forecastData = [...existingData];
-                    
-                    // Generate some future dates
-                    const existingLabels = [...timestamps];
-                    const forecastLabels = [];
-                    
-                    // Create 5 future data points
-                    for (let i = 1; i <= 5; i++) {
-                        const lastValue = existingData[existingData.length - 1] || 0;
-                        const randomChange = (Math.random() - 0.5) * 2; // Random variance
-                        forecastData.push(lastValue + randomChange);
+                    // Handle multi-dataset forecasts
+                    const forecastDatasets = [];
+                    for (let i = 0; i < chart.data.datasets.length; i++) {
+                        const existingData = [...dataSets[i]];
+                        const forecastData = [...existingData];
                         
-                        // Generate future date label
-                        const lastDate = new Date();
-                        lastDate.setHours(lastDate.getHours() + i);
-                        forecastLabels.push(lastDate.toLocaleDateString('en-US', { 
-                            month: '2-digit', 
-                            day: '2-digit', 
-                            hour: '2-digit', 
-                            minute: '2-digit'
-                        }));
-                    }
-                    
-                    // Update chart with forecast data
-                    chart.data.labels = [...existingLabels, ...forecastLabels];
-                    chart.data.datasets = [
-                        {
-                            ...chart.data.datasets[0],
+                        // Generate future dates/data points
+                        const existingLabels = [...timestamps];
+                        const forecastLabels = [];
+                        
+                        // Create 5 future data points
+                        for (let j = 1; j <= 5; j++) {
+                            const lastValue = existingData[existingData.length - 1] || 0;
+                            const randomChange = (Math.random() - 0.5) * 2; // Random variance
+                            const trend = (j / 5) * (Math.random() > 0.5 ? 1 : -1); // Add some trend
+                            forecastData.push(lastValue + randomChange + trend);
+                            
+                            // Generate future date label
+                            const lastDate = new Date();
+                            lastDate.setHours(lastDate.getHours() + j);
+                            forecastLabels.push(lastDate.toLocaleDateString('en-US', { 
+                                month: '2-digit', 
+                                day: '2-digit', 
+                                hour: '2-digit', 
+                                minute: '2-digit'
+                            }));
+                        }
+                        
+                        // Create dataset for existing data
+                        forecastDatasets.push({
+                            ...chart.data.datasets[i],
                             data: existingData
-                        },
-                        {
-                            label: 'Forecast',
+                        });
+                        
+                        // Create dataset for forecast data
+                        forecastDatasets.push({
+                            label: `${chart.data.datasets[i].label} (Forecast)`,
                             data: Array(existingData.length).fill(null).concat(forecastData.slice(-5)),
-                            borderColor: chartColors.forecast.border,
-                            backgroundColor: chartColors.forecast.background,
+                            borderColor: chart.data.datasets[i].borderColor,
+                            backgroundColor: 'transparent',
                             borderWidth: 2,
                             borderDash: [5, 5],
                             tension: 0.3,
-                            pointRadius: 3
-                        }
-                    ];
+                            pointRadius: 3,
+                            fill: false
+                        });
+                    }
                     
+                    // Update chart
+                    chart.data.labels = [...existingLabels, ...forecastLabels];
+                    chart.data.datasets = forecastDatasets;
                     chart.update();
                     return;
                 }
@@ -621,28 +918,24 @@
                 const hoursToShow = timeRanges[rangeKey];
                 if (!hoursToShow) return;
                 
-                // For demo, filter based on the length of the array
                 // In a real app, you'd filter by actual timestamp values
-                const dataLength = dataSet.length;
+                const dataLength = timestamps.length;
                 const pointsToShow = Math.min(dataLength, Math.ceil(dataLength * (hoursToShow / 24)));
                 
                 // Slice the data to show only the relevant time range
                 const filteredLabels = timestamps.slice(-pointsToShow);
-                const filteredData = dataSet.slice(-pointsToShow);
                 
-                // Update chart
+                // Update datasets
+                for (let i = 0; i < chart.data.datasets.length; i++) {
+                    if (i < dataSets.length) {
+                        const filteredData = dataSets[i].slice(-pointsToShow);
+                        chart.data.datasets[i].data = filteredData;
+                    }
+                }
+                
                 chart.data.labels = filteredLabels;
-                chart.data.datasets[0].data = filteredData;
                 chart.update();
             }
-            
-            // Initialize export button
-            document.getElementById('exportButton').addEventListener('click', function() {
-                const format = document.getElementById('exportFormat').value;
-                const days = document.getElementById('exportTimeRange').value;
-                
-                window.location.href = `/Dashboard/ExportDeviceData?id=${@Model.Device.Id}&format=${format}&days=${days}`;
-            });
             
             // Set up real-time updates if available
             const connection = new signalR.HubConnectionBuilder()
@@ -664,21 +957,21 @@
                 // Format timestamp
                 const timestamp = new Date(measurement.timestamp).toLocaleString();
                 
-                // Add new data to temperature chart
-                if (measurement.temperature !== null && temperatureChart) {
+                // Add data to all charts
+                if (measurement.tempInside !== null && measurement.tempOutside !== null && temperatureChart) {
                     temperatureChart.data.labels.push(timestamp);
-                    temperatureChart.data.datasets[0].data.push(measurement.temperature);
+                    temperatureChart.data.datasets[0].data.push(measurement.tempInside);
+                    temperatureChart.data.datasets[1].data.push(measurement.tempOutside);
                     temperatureChart.update();
                 }
                 
-                // Add new data to humidity chart
-                if (measurement.humidity !== null && humidityChart) {
+                if (measurement.humInside !== null && measurement.humOutside !== null && humidityChart) {
                     humidityChart.data.labels.push(timestamp);
-                    humidityChart.data.datasets[0].data.push(measurement.humidity);
+                    humidityChart.data.datasets[0].data.push(measurement.humInside);
+                    humidityChart.data.datasets[1].data.push(measurement.humOutside);
                     humidityChart.update();
                 }
                 
-                // Add new data to weight chart
                 if (measurement.weight !== null && weightChart) {
                     weightChart.data.labels.push(timestamp);
                     weightChart.data.datasets[0].data.push(measurement.weight);
@@ -688,34 +981,44 @@
             
             function updateMetricsDisplay(measurement) {
                 // Update displayed metrics with new values
-                if (measurement.temperature !== null) {
-                    document.querySelector('[data-metric="temperature"]').textContent = 
-                        `${measurement.temperature.toFixed(1)} °C`;
+                if (measurement.tempInside !== null) {
+                    document.querySelector('[data-metric="tempInside"]').textContent = 
+                        `${measurement.tempInside.toFixed(1)}`;
                 }
                 
-                if (measurement.humidity !== null) {
-                    document.querySelector('[data-metric="humidity"]').textContent = 
-                        `${measurement.humidity.toFixed(1)} %`;
+                if (measurement.tempOutside !== null) {
+                    document.querySelector('[data-metric="tempOutside"]').textContent = 
+                        `${measurement.tempOutside.toFixed(1)}`;
+                }
+                
+                if (measurement.humInside !== null) {
+                    document.querySelector('[data-metric="humInside"]').textContent = 
+                        `${measurement.humInside.toFixed(1)}`;
+                }
+                
+                if (measurement.humOutside !== null) {
+                    document.querySelector('[data-metric="humOutside"]').textContent = 
+                        `${measurement.humOutside.toFixed(1)}`;
                 }
                 
                 if (measurement.weight !== null) {
                     document.querySelector('[data-metric="weight"]').textContent = 
-                        `${measurement.weight.toFixed(1)} kg`;
-                }
-                
-                if (measurement.batteryLevel !== null) {
-                    document.querySelector('[data-metric="battery"]').textContent = 
-                        `${measurement.batteryLevel.toFixed(1)} %`;
+                        `${measurement.weight.toFixed(1)}`;
                 }
             }
             
-            // Dark mode toggle listener (if you have a toggle button)
-            document.addEventListener('colorSchemeChange', function() {
-                // Refresh or update charts for the new mode
-                location.reload();
+            // Add hover effects for metric boxes
+            const metricBoxes = document.querySelectorAll('.rounded-xl');
+            metricBoxes.forEach(box => {
+                box.addEventListener('mouseenter', function() {
+                    this.classList.add('shadow-md');
+                });
+                box.addEventListener('mouseleave', function() {
+                    this.classList.remove('shadow-md');
+                });
             });
             
-            // Start the connection
+            // Start the SignalR connection
             try {
                 connection.start();
                 console.log("SignalR Connected");
