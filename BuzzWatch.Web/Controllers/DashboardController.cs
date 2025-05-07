@@ -93,11 +93,27 @@ namespace BuzzWatch.Web.Controllers
                 var measurements = await _apiClient.GetAsync<List<MeasurementDto>>($"/api/v1/devices/{id}/measurements?limit=100");
                 var alerts = await _apiClient.GetAsync<List<AlertDto>>($"/api/v1/devices/{id}/alerts");
                 
+                // Check if the user has management permissions for this device
+                bool canManage = User.IsInRole("Admin");
+                
+                if (!canManage)
+                {
+                    // Check for user-specific management permissions via user-devices API
+                    var userDevices = await _apiClient.GetAsync<List<UserDevicePermissionDto>>($"/api/v1/user-devices?userId={User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value}");
+                    
+                    if (userDevices != null)
+                    {
+                        var devicePermission = userDevices.FirstOrDefault(d => d.DeviceId == id);
+                        canManage = devicePermission?.CanManage ?? false;
+                    }
+                }
+                
                 var viewModel = new DeviceDetailViewModel
                 {
                     Device = device,
                     Measurements = measurements ?? new List<MeasurementDto>(),
-                    Alerts = alerts ?? new List<AlertDto>()
+                    Alerts = alerts ?? new List<AlertDto>(),
+                    CanManage = canManage
                 };
                 
                 // Generate device-specific predictions if the service is available
@@ -193,6 +209,92 @@ namespace BuzzWatch.Web.Controllers
             {
                 _logger.LogError(ex, "Error exporting data for device {DeviceId}", id);
                 return BadRequest("Failed to export data");
+            }
+        }
+        
+        [HttpGet]
+        [Route("api/v1/devices/{id}/api-key")]
+        public async Task<IActionResult> GetApiKey(Guid id)
+        {
+            try
+            {
+                // Check if user has management permissions for this device
+                bool canManage = User.IsInRole("Admin");
+                
+                if (!canManage)
+                {
+                    // Check for user-specific management permissions via user-devices API
+                    var userDevices = await _apiClient.GetAsync<List<UserDevicePermissionDto>>($"/api/v1/user-devices?userId={User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value}");
+                    
+                    if (userDevices != null)
+                    {
+                        var devicePermission = userDevices.FirstOrDefault(d => d.DeviceId == id);
+                        canManage = devicePermission?.CanManage ?? false;
+                    }
+                }
+                
+                if (!canManage)
+                {
+                    return Forbid("You don't have permission to view this device's API key");
+                }
+                
+                // Get API key from the API
+                var apiKey = await _apiClient.GetAsync<ApiKeyResponse>($"/api/v1/devices/{id}/api-key");
+                
+                if (apiKey == null)
+                {
+                    return NotFound("API key not found");
+                }
+                
+                return Ok(apiKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting API key for device {DeviceId}", id);
+                return StatusCode(500, "Error getting API key");
+            }
+        }
+        
+        [HttpPost]
+        [Route("api/v1/devices/{id}/api-key")]
+        public async Task<IActionResult> RegenerateApiKey(Guid id)
+        {
+            try
+            {
+                // Check if user has management permissions for this device
+                bool canManage = User.IsInRole("Admin");
+                
+                if (!canManage)
+                {
+                    // Check for user-specific management permissions via user-devices API
+                    var userDevices = await _apiClient.GetAsync<List<UserDevicePermissionDto>>($"/api/v1/user-devices?userId={User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value}");
+                    
+                    if (userDevices != null)
+                    {
+                        var devicePermission = userDevices.FirstOrDefault(d => d.DeviceId == id);
+                        canManage = devicePermission?.CanManage ?? false;
+                    }
+                }
+                
+                if (!canManage)
+                {
+                    return Forbid("You don't have permission to regenerate this device's API key");
+                }
+                
+                // Regenerate API key
+                var apiKey = await _apiClient.PostAsync<ApiKeyResponse>($"/api/v1/devices/{id}/api-key", null);
+                
+                if (apiKey == null)
+                {
+                    return StatusCode(500, "Failed to regenerate API key");
+                }
+                
+                return Ok(apiKey);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error regenerating API key for device {DeviceId}", id);
+                return StatusCode(500, "Error regenerating API key");
             }
         }
         

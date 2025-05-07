@@ -11,6 +11,9 @@ namespace BuzzWatch.Web.Models
         public List<AlertDto> Alerts { get; set; } = new List<AlertDto>();
         public List<PredictiveInsightDto> PredictiveInsights { get; set; } = new List<PredictiveInsightDto>();
         
+        // Permission flags
+        public bool CanManage { get; set; }
+        
         // Prediction data for charts
         public Dictionary<string, double> TemperaturePredictions { get; set; } = new Dictionary<string, double>();
         public Dictionary<string, double> HumidityPredictions { get; set; } = new Dictionary<string, double>();

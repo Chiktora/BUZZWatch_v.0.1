@@ -171,7 +171,6 @@ namespace BuzzWatch.Api.Controllers
         
         // PUT: api/v1/devices/{id}
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
         public async Task<ActionResult> UpdateDevice(
             Guid id, [FromBody] UpdateDeviceRequest request, CancellationToken ct)
         {
@@ -182,6 +181,22 @@ namespace BuzzWatch.Api.Controllers
                 if (device == null)
                 {
                     return NotFound($"Device with ID {id} not found");
+                }
+                
+                // Check if user has permission to manage this device
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("User not authenticated");
+                }
+                
+                var isAdmin = User.IsInRole("Admin");
+                var canManage = isAdmin || await _userDeviceAccessRepository.CanManageAsync(userId, id, ct);
+                
+                if (!canManage)
+                {
+                    _logger.LogWarning("Access denied: User {UserId} attempted to update Device {DeviceId} without permission", userId, id);
+                    return Forbid("You don't have permission to manage this device");
                 }
                 
                 // Update properties
@@ -318,6 +333,57 @@ namespace BuzzWatch.Api.Controllers
                 };
                 
                 return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error regenerating API key for device with ID {DeviceId}", id);
+                return StatusCode(500, "Error regenerating API key");
+            }
+        }
+        
+        // POST: api/v1/devices/{id}/api-key
+        [HttpPost("{id}/api-key")]
+        public async Task<ActionResult<ApiKeyResponse>> RegenerateApiKey(Guid id, CancellationToken ct)
+        {
+            try
+            {
+                // Get existing device
+                var device = await _deviceRepository.GetAsync(id, ct);
+                if (device == null)
+                {
+                    return NotFound($"Device with ID {id} not found");
+                }
+                
+                // Check if user has permission to manage this device
+                var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized("User not authenticated");
+                }
+                
+                var isAdmin = User.IsInRole("Admin");
+                var canManage = isAdmin || await _userDeviceAccessRepository.CanManageAsync(userId, id, ct);
+                
+                if (!canManage)
+                {
+                    _logger.LogWarning("Access denied: User {UserId} attempted to regenerate API key for Device {DeviceId} without permission", userId, id);
+                    return Forbid("You don't have permission to manage this device");
+                }
+                
+                // Generate a new API key
+                var ttl = TimeSpan.FromDays(365); // 1 year expiration
+                var apiKey = ApiKey.Issue(id, ttl);
+                
+                // Save API key to the device
+                await _apiKeyRepository.AddAsync(apiKey, ct);
+                await _unitOfWork.SaveChangesAsync(ct);
+                
+                // Return the new API key
+                return Ok(new ApiKeyResponse
+                {
+                    Key = apiKey.Key,
+                    ExpiresAt = apiKey.ExpiresAt
+                });
             }
             catch (Exception ex)
             {

@@ -1,0 +1,13 @@
+{
+  "name": "buzzwatch-web",
+  "version": "1.0.0",
+  "description": "BuzzWatch Web UI",
+  "private": true,
+  "scripts": {
+    "build:css": "tailwindcss -i ./wwwroot/css/tailwind.css -o ./wwwroot/css/tailwind.output.css",
+    "watch:css": "tailwindcss -i ./wwwroot/css/tailwind.css -o ./wwwroot/css/tailwind.output.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.3.5"
+  }
+} 

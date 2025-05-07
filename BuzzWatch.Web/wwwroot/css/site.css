@@ -20,3 +20,38 @@ html {
 body {
   margin-bottom: 60px;
 }
+
+/* Fix for navigation */
+.navbar-nav {
+  display: flex !important;
+  gap: 5px;
+}
+
+@media (max-width: 767px) {
+  .navbar-nav {
+    padding: 1rem 0;
+  }
+  
+  .navbar-collapse.show, 
+  .navbar-collapse.collapsing {
+    display: flex !important;
+    flex-direction: column;
+  }
+}
+
+/* Dropdown menu positioning fix */
+[role="menu"] {
+  position: absolute !important;
+  z-index: 1000 !important;
+}
+
+/* Ensure proper stacking order */
+.relative {
+  position: relative;
+  z-index: 40;
+}
+
+/* When dropdowns are open, increase their z-index */
+[aria-expanded="true"] + [role="menu"] {
+  z-index: 1050 !important;
+}

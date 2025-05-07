@@ -556,7 +556,7 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
         // POST: /Admin/Users/AssignDevice
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AssignDevice(AssignDeviceViewModel model, string deviceSelect)
+        public async Task<IActionResult> AssignDevice(AssignDeviceViewModel model, string deviceSelect, bool canManage = false)
         {
             try
             {
@@ -570,30 +570,27 @@ namespace BuzzWatch.Web.Areas.Admin.Controllers
                     }
                 }
                 
-                _logger.LogInformation("Assigning device {DeviceId} to user {UserId}. HasAccess={HasAccess}, CanManage={CanManage}", 
-                    model.DeviceId, model.UserId, model.HasAccess, model.CanManage);
-                
                 if (model.DeviceId == Guid.Empty)
                 {
-                    _logger.LogError("Invalid DeviceId: {DeviceId}", model.DeviceId);
-                    TempData["ErrorMessage"] = "Please select a valid device to assign.";
+                    ModelState.AddModelError("DeviceId", "Please select a device");
+                    
+                    // Return to the Devices view
                     return RedirectToAction(nameof(Devices), new { id = model.UserId });
                 }
-                
-                // Map view model to API request
+
                 var updateRequest = new UpdateUserDeviceRequest
                 {
                     UserId = model.UserId,
                     DeviceId = model.DeviceId,
-                    HasAccess = true, // Always true when assigning
-                    CanManage = model.CanManage
+                    HasAccess = true,
+                    CanManage = canManage
                 };
                 
-                _logger.LogInformation("Sending device assignment request: {Request}",
-                    System.Text.Json.JsonSerializer.Serialize(updateRequest));
+                _logger.LogInformation("Assigning device. Request: {@Request}", updateRequest);
                 
-                // First try the test endpoint to see if we can diagnose the issue
+                // Try the test endpoint first to diagnose potential issues
                 var testResponse = await _apiClient.PostAsJsonAsync("api/v1/user-devices/test", updateRequest);
+                
                 if (testResponse.IsSuccessStatusCode)
                 {
                     var testContent = await testResponse.Content.ReadAsStringAsync();
