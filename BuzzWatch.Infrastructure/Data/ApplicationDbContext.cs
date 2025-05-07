@@ -20,6 +20,7 @@ namespace BuzzWatch.Infrastructure.Data
         public DbSet<HourlyAggregate> HourlyAggregates => Set<HourlyAggregate>();
         public DbSet<AlertRule> AlertRules => Set<AlertRule>();
         public DbSet<AlertEvent> AlertEvents => Set<AlertEvent>();
+        public DbSet<UserDeviceAccess> UserDeviceAccess => Set<UserDeviceAccess>();
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> opt)
             : base(opt) { }

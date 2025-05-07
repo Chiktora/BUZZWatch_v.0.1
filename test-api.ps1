@@ -56,8 +56,8 @@ $headers = @{
 
 $body = @{
     recordedAt = (Get-Date).ToUniversalTime().ToString("o")
-    tempInsideC = 28.5
-    humInsidePct = 55.3
+    tempInsideC = 29.5
+    humInsidePct = 54.3
     tempOutsideC = 21.2
     humOutsidePct = 48.6
     weightKg = 62.8

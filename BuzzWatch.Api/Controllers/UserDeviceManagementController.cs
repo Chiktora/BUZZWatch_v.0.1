@@ -40,27 +40,53 @@ namespace BuzzWatch.Api.Controllers
         {
             try
             {
+                _logger.LogInformation("Getting device permissions for user: {UserId}", userId);
+                
                 // Verify user exists
                 var user = await _userManager.FindByIdAsync(userId.ToString());
                 if (user == null)
                 {
+                    _logger.LogWarning("User with ID {UserId} not found", userId);
                     return NotFound("User not found");
                 }
-
-                // Get devices this user has access to
-                var accessibleDeviceIds = await _userDeviceAccessRepository.GetAccessibleDeviceIdsAsync(
-                    userId.ToString(), ct);
                 
-                // Get all devices to include those the user doesn't have access to
+                // Use the ID from the user object to ensure correct format
+                string userIdString = user.Id.ToString();
+                _logger.LogInformation("Using user ID: {UserId} (from user object)", userIdString);
+
+                // Get all devices for building the response
                 var allDevices = await _deviceRepository.GetAllAsync(ct);
+                _logger.LogInformation("Retrieved {Count} devices", allDevices.Count);
+                
+                // Determine if the user is an admin
+                var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+                
+                // Get devices this user has access to
+                var userDeviceAccesses = isAdmin 
+                    ? null // Admins have access to all devices, no need to query
+                    : await _userDeviceAccessRepository.GetUserDeviceAccessesAsync(userIdString, ct);
+                
+                if (!isAdmin && userDeviceAccesses != null)
+                {
+                    _logger.LogInformation("User has access to {Count} devices", userDeviceAccesses.Count);
+                }
                 
                 // Build response
                 var response = new List<UserDeviceResponse>();
                 
                 foreach (var device in allDevices)
                 {
-                    // Check if user has access to this device
-                    var hasAccess = accessibleDeviceIds.Contains(device.Id);
+                    // For admin users, they have access to all devices
+                    bool hasAccess = isAdmin;
+                    bool canManage = isAdmin;
+                    
+                    // For non-admin users, check their specific permissions
+                    if (!isAdmin && userDeviceAccesses != null)
+                    {
+                        var deviceAccess = userDeviceAccesses.FirstOrDefault(a => a.DeviceId == device.Id);
+                        hasAccess = deviceAccess != null;
+                        canManage = deviceAccess?.CanManage ?? false;
+                    }
                     
                     response.Add(new UserDeviceResponse
                     {
@@ -69,7 +95,7 @@ namespace BuzzWatch.Api.Controllers
                         DeviceName = device.Name,
                         DeviceLocation = device.Location?.ToString() ?? "Not specified",
                         HasAccess = hasAccess,
-                        CanManage = false // We don't have this information currently
+                        CanManage = canManage
                     });
                 }
                 
@@ -78,7 +104,13 @@ namespace BuzzWatch.Api.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving device permissions for user {UserId}", userId);
-                return StatusCode(500, "An error occurred while retrieving device permissions");
+                
+                // Return a more specific error message to help diagnose the issue
+                string errorMessage = ex.InnerException != null 
+                    ? $"Error: {ex.Message}. Inner error: {ex.InnerException.Message}"
+                    : $"Error: {ex.Message}";
+                
+                return StatusCode(500, errorMessage);
             }
         }
 
@@ -88,10 +120,13 @@ namespace BuzzWatch.Api.Controllers
         {
             try
             {
+                _logger.LogInformation("Assigning device to user. Request: {@Request}", request);
+                
                 // Verify user exists
                 var user = await _userManager.FindByIdAsync(request.UserId.ToString());
                 if (user == null)
                 {
+                    _logger.LogWarning("User with ID {UserId} not found", request.UserId);
                     return NotFound("User not found");
                 }
                 
@@ -99,31 +134,61 @@ namespace BuzzWatch.Api.Controllers
                 var device = await _deviceRepository.GetAsync(request.DeviceId, ct);
                 if (device == null)
                 {
+                    _logger.LogWarning("Device with ID {DeviceId} not found", request.DeviceId);
                     return NotFound("Device not found");
                 }
                 
-                if (request.HasAccess)
-                {
-                    // Grant access to device
-                    await _userDeviceAccessRepository.GrantAccessAsync(
-                        request.UserId.ToString(), request.DeviceId, request.CanManage, ct);
-                }
-                else
-                {
-                    // Remove access from device
-                    await _userDeviceAccessRepository.RevokeAccessAsync(
-                        request.UserId.ToString(), request.DeviceId, ct);
-                }
+                _logger.LogInformation("Found user {UserName} and device {DeviceName}", 
+                    user.UserName, device.Name);
                 
-                await _unitOfWork.SaveChangesAsync(ct);
-                
-                return Ok();
+                try
+                {
+                    // Ensure we have the correct format for UserId - use the ID from the actual user object
+                    string userId = user.Id.ToString();
+                    _logger.LogInformation("Using user ID: {UserId} (from user object)", userId);
+                    
+                    if (request.HasAccess)
+                    {
+                        _logger.LogInformation("Granting access to device {DeviceId} for user {UserId}. CanManage={CanManage}", 
+                            request.DeviceId, userId, request.CanManage);
+                            
+                        // Grant access to device
+                        await _userDeviceAccessRepository.GrantAccessAsync(
+                            userId, request.DeviceId, request.CanManage, ct);
+                    }
+                    else
+                    {
+                        _logger.LogInformation("Revoking access to device {DeviceId} for user {UserId}", 
+                            request.DeviceId, userId);
+                            
+                        // Remove access from device
+                        await _userDeviceAccessRepository.RevokeAccessAsync(
+                            userId, request.DeviceId, ct);
+                    }
+                    
+                    _logger.LogInformation("About to save changes to database");
+                    await _unitOfWork.SaveChangesAsync(ct);
+                    _logger.LogInformation("Changes saved successfully");
+                    
+                    return Ok();
+                }
+                catch (Exception innerEx)
+                {
+                    _logger.LogError(innerEx, "Exception in device assignment operations");
+                    throw; // Re-throw to be caught by outer catch
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating device access for user {UserId} to device {DeviceId}",
-                    request.UserId, request.DeviceId);
-                return StatusCode(500, "An error occurred while updating device access");
+                    request?.UserId, request?.DeviceId);
+                
+                // Return a more specific error message to help diagnose the issue
+                string errorMessage = ex.InnerException != null 
+                    ? $"Error: {ex.Message}. Inner error: {ex.InnerException.Message}"
+                    : $"Error: {ex.Message}";
+                
+                return StatusCode(500, errorMessage);
             }
         }
 
@@ -133,10 +198,13 @@ namespace BuzzWatch.Api.Controllers
         {
             try
             {
+                _logger.LogInformation("Removing device access. UserId: {UserId}, DeviceId: {DeviceId}", userId, deviceId);
+                
                 // Verify user exists
                 var user = await _userManager.FindByIdAsync(userId.ToString());
                 if (user == null)
                 {
+                    _logger.LogWarning("User with ID {UserId} not found", userId);
                     return NotFound("User not found");
                 }
                 
@@ -144,20 +212,94 @@ namespace BuzzWatch.Api.Controllers
                 var device = await _deviceRepository.GetAsync(deviceId, ct);
                 if (device == null)
                 {
+                    _logger.LogWarning("Device with ID {DeviceId} not found", deviceId);
                     return NotFound("Device not found");
                 }
                 
-                // Remove access from device
-                await _userDeviceAccessRepository.RevokeAccessAsync(userId.ToString(), deviceId, ct);
-                await _unitOfWork.SaveChangesAsync(ct);
+                _logger.LogInformation("Found user {UserName} and device {DeviceName}", 
+                    user.UserName, device.Name);
                 
-                return Ok();
+                try
+                {
+                    // Use the ID from the user object to ensure correct format
+                    string userIdString = user.Id.ToString();
+                    _logger.LogInformation("Using user ID: {UserId} (from user object)", userIdString);
+                    
+                    // Remove access from device
+                    await _userDeviceAccessRepository.RevokeAccessAsync(userIdString, deviceId, ct);
+                    
+                    _logger.LogInformation("About to save changes to database");
+                    await _unitOfWork.SaveChangesAsync(ct);
+                    _logger.LogInformation("Changes saved successfully");
+                    
+                    return Ok();
+                }
+                catch (Exception innerEx)
+                {
+                    _logger.LogError(innerEx, "Exception in device access removal operations");
+                    throw; // Re-throw to be caught by outer catch
+                }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error removing device access for user {UserId} to device {DeviceId}",
                     userId, deviceId);
-                return StatusCode(500, "An error occurred while removing device access");
+                
+                // Return a more specific error message to help diagnose the issue
+                string errorMessage = ex.InnerException != null 
+                    ? $"Error: {ex.Message}. Inner error: {ex.InnerException.Message}"
+                    : $"Error: {ex.Message}";
+                
+                return StatusCode(500, errorMessage);
+            }
+        }
+        
+        // POST: api/v1/user-devices/test
+        [HttpPost("test")]
+        public async Task<ActionResult> TestAssignDeviceToUser([FromBody] UpdateUserDeviceRequest request)
+        {
+            _logger.LogInformation("Received test request: {@Request}", request);
+            
+            try
+            {
+                // Get the user to make sure we have the right ID format
+                var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+                var device = await _deviceRepository.GetAsync(request.DeviceId, CancellationToken.None);
+                
+                // Generate debug user ID info
+                string userIdFromRequest = request.UserId.ToString();
+                string? userIdFromDb = user?.Id.ToString();
+                
+                // Return detailed information about what we received
+                var response = new
+                {
+                    ReceivedData = request,
+                    UserInfo = new
+                    {
+                        RequestUserId = userIdFromRequest,
+                        DbUserId = userIdFromDb,
+                        UserFound = user != null,
+                        UserName = user?.UserName,
+                    },
+                    DeviceInfo = new
+                    {
+                        DeviceId = request.DeviceId,
+                        DeviceFound = device != null,
+                        DeviceName = device?.Name
+                    },
+                    ValidationChecks = new
+                    {
+                        UserIdMatch = userIdFromDb != null && userIdFromRequest == userIdFromDb,
+                        IsValid = request != null && request.UserId != Guid.Empty && request.DeviceId != Guid.Empty
+                    }
+                };
+                
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in test endpoint");
+                return StatusCode(500, new { Error = ex.Message, InnerError = ex.InnerException?.Message });
             }
         }
     }

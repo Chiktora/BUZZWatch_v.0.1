@@ -149,7 +149,7 @@
                     
                     <div class="mb-3">
                         <label class="form-label">Device</label>
-                        <select class="form-select" id="deviceSelect">
+                        <select class="form-select" id="deviceSelect" name="deviceSelect" required>
                             <option value="">-- Select a device --</option>
                             @if (Model.Devices != null)
                             {
@@ -159,17 +159,18 @@
                                 }
                             }
                         </select>
+                        <div class="invalid-feedback">Please select a device.</div>
                     </div>
                     
                     <div class="mb-3">
                         <label class="form-label">Access Level</label>
                         <div class="form-check mb-2">
-                            <input class="form-check-input" type="checkbox" id="hasAccessCheck" name="HasAccess" checked disabled>
+                            <input class="form-check-input" type="checkbox" id="hasAccessCheck" name="HasAccess" checked value="true">
                             <label class="form-check-label" for="hasAccessCheck">View Access</label>
                             <div class="form-text">User can view data from this device</div>
                         </div>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="canManageCheck" name="CanManage">
+                            <input class="form-check-input" type="checkbox" id="canManageCheck" name="CanManage" value="true">
                             <label class="form-check-label" for="canManageCheck">Management Access</label>
                             <div class="form-text">User can manage device settings and alerts</div>
                         </div>
@@ -207,27 +208,85 @@
     </div>
 </div>
 
+<div class="card mb-4">
+    <div class="card-header">Device Assignment Debug</div>
+    <div class="card-body">
+        <div class="mb-3">
+            <h5>Device Information</h5>
+            <div class="small">
+                <ul>
+                    <li>Total devices: @(Model.Devices?.Count ?? 0)</li>
+                    <li>Assigned devices: @(Model.Devices?.Count(d => d.HasAccess) ?? 0)</li>
+                    <li>Available devices: @(Model.Devices?.Count(d => !d.HasAccess) ?? 0)</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <p>If you don't see any devices, you may need to create some first.</p>
+            <a href="/Admin/Devices/Create" class="btn btn-primary btn-sm">Create New Device</a>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         $(function() {
+            // Debug device listing
+            console.log('Available devices for assignment:');
+            $('#deviceSelect option').each(function() {
+                console.log($(this).val() + ' - ' + $(this).text());
+            });
+            
             // Assign device modal
             $('#assignDeviceModal').on('show.bs.modal', function (event) {
                 var button = $(event.relatedTarget);
                 var deviceId = button.data('device-id');
                 var deviceName = button.data('device-name');
                 
+                console.log('Opening assign device modal. DeviceId:', deviceId, 'DeviceName:', deviceName);
+                
+                // Clear the previous selection first
+                $('#deviceSelect').val('');
+                $('#assignDeviceId').val('');
+                
                 if (deviceId) {
+                    console.log('Setting deviceSelect to: ' + deviceId);
                     $('#deviceSelect').val(deviceId);
                     $('#assignDeviceId').val(deviceId);
-                } else {
-                    $('#deviceSelect').val('');
-                    $('#assignDeviceId').val('');
+                    
+                    // Debug what was set
+                    console.log('After setting - deviceSelect value:', $('#deviceSelect').val());
+                    console.log('After setting - assignDeviceId value:', $('#assignDeviceId').val());
                 }
             });
             
             // Device select change
             $('#deviceSelect').change(function() {
-                $('#assignDeviceId').val($(this).val());
+                var selectedDeviceId = $(this).val();
+                console.log('Device selection changed. Selected device ID:', selectedDeviceId);
+                $('#assignDeviceId').val(selectedDeviceId);
+                
+                // Debug - check if the value was actually set
+                console.log('Updated hidden field value:', $('#assignDeviceId').val());
+            });
+            
+            // Form submission
+            $('form[asp-action="AssignDevice"]').on('submit', function(e) {
+                var deviceId = $('#assignDeviceId').val();
+                var selectedText = $('#deviceSelect option:selected').text();
+                
+                console.log('Form submission - DeviceId:', deviceId);
+                console.log('Form submission - Selected device:', selectedText);
+                
+                if (!deviceId) {
+                    e.preventDefault();
+                    alert('Please select a device');
+                    return false;
+                }
+                
+                // Proceed with form submission - no alert
+                return true;
             });
             
             // Remove device modal
@@ -235,6 +294,8 @@
                 var button = $(event.relatedTarget);
                 var deviceId = button.data('device-id');
                 var deviceName = button.data('device-name');
+                
+                console.log('Opening remove device modal. DeviceId:', deviceId, 'DeviceName:', deviceName);
                 
                 $('#removeDeviceName').text(deviceName);
                 $('#removeDeviceId').val(deviceId);

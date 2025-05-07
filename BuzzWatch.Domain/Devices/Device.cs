@@ -3,6 +3,14 @@ using BuzzWatch.Domain.Measurements;
 
 namespace BuzzWatch.Domain.Devices
 {
+    /// <summary>
+    /// Represents a BuzzWatch device.
+    /// 
+    /// Note: Access control to devices is managed through the UserDeviceAccess entity,
+    /// not through properties on the Device itself. This ensures proper separation of concerns.
+    /// 
+    /// Only administrators and explicitly authorized users should have access to devices.
+    /// </summary>
     public class Device : BaseEntity<Guid>
     {
         private Device() { } // EF Core constructor

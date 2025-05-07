@@ -107,11 +107,11 @@ namespace BuzzWatch.Api.Controllers
                 var isAdmin = User.IsInRole("Admin");
                 if (!isAdmin)
                 {
-                    var hasAccess = await _userDeviceAccessRepository.HasAccessAsync(
-                        Guid.Parse(userId).ToString(), id, ct);
+                    var hasAccess = await _userDeviceAccessRepository.HasAccessAsync(userId, id, ct);
                     
                     if (!hasAccess)
                     {
+                        _logger.LogWarning("Access denied: User {UserId} attempted to access Device {DeviceId} without permission", userId, id);
                         return Forbid("You don't have access to this device");
                     }
                 }
